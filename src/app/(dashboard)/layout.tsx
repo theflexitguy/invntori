@@ -3,8 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { FloatingChatButton } from "@/components/layout/FloatingChatButton";
+import { AppShell } from "@/components/layout/AppShell";
 import { Spinner } from "@/components/ui/Spinner";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +18,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1117]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#0f1117]">
         <Spinner size={32} />
       </div>
     );
@@ -27,11 +26,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user) return null;
 
-  return (
-    <div className="flex min-h-screen bg-[#12151f]">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
-      <FloatingChatButton />
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

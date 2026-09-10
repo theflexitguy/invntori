@@ -176,7 +176,7 @@ export default function AdminRequestsPage() {
   }
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-3xl">
+    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-3xl pb-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">
@@ -196,7 +196,7 @@ export default function AdminRequestsPage() {
       {/* Header */}
       <div className="mt-4 mb-6">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold text-white">Pending Requests</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Pending Requests</h2>
           {counts["Pending"] > 0 && (
             <span className="text-sm font-medium px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400 border border-amber-400/20">
               {counts["Pending"]}

@@ -183,9 +183,9 @@ export default function AdminPage() {
   if (!user?.isAdmin) return null;
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-3xl">
+    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-3xl pb-8">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white">Admin Center</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Admin Center</h2>
         <p className="text-gray-400 mt-1 text-sm">Manage your company settings, inventory, and operations</p>
       </div>
 
@@ -200,7 +200,7 @@ export default function AdminPage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.03] transition-colors group"
+                  className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors group"
                 >
                   <div className="w-9 h-9 rounded-lg bg-[#35B2FF]/10 border border-[#35B2FF]/20 flex items-center justify-center shrink-0 text-[#35B2FF] group-hover:bg-[#35B2FF]/20 transition-colors">
                     {item.icon}

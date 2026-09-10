@@ -145,11 +145,11 @@ function RejectModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade"
       onClick={onClose}
     >
       <div
-        className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md shadow-2xl"
+        className="animate-sheet bg-[#1a1f2e] border border-[#2a2f3e] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-md sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">
@@ -185,14 +185,14 @@ function RejectModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm border border-[#2a2f3e] text-gray-400 hover:text-white hover:border-[#3a3f4e] transition-colors"
+            className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm border border-[#2a2f3e] text-gray-400 hover:text-white hover:border-[#3a3f4e] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
             disabled={!note.trim() || saving}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Rejecting…" : "Reject Request"}
           </button>
@@ -255,11 +255,11 @@ function RepairCard({
       }`}
     >
       {/* Card header */}
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
-              <h3 className="font-semibold text-white text-base leading-tight truncate">
+              <h3 className="font-semibold text-white text-base leading-tight break-words">
                 {repair.equipmentName}
               </h3>
               {equipment?.category && (
@@ -268,7 +268,7 @@ function RepairCard({
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-wrap">
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
@@ -307,7 +307,7 @@ function RepairCard({
 
       {/* Expanded panel */}
       {expanded && (
-        <div className="border-t border-[#2a2f3e] bg-[#151a26] px-5 py-5 space-y-4">
+        <div className="border-t border-[#2a2f3e] bg-[#151a26] px-4 sm:px-5 py-5 space-y-4">
           {/* Full description */}
           {repair.description.length > 120 && (
             <div>
@@ -319,7 +319,7 @@ function RepairCard({
           )}
 
           {/* Metadata grid */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <div>
               <p className="text-xs text-gray-600 mb-0.5">Reported</p>
               <p className="text-gray-300">{formatDateTime(repair.reportedAt)}</p>
@@ -360,7 +360,7 @@ function RepairCard({
               <button
                 onClick={handleApprove}
                 disabled={actioning !== null}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/30 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm font-semibold bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/30 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actioning === "approve" ? (
                   <Spinner size={14} />
@@ -650,7 +650,7 @@ export default function EquipmentRepairsPage() {
   ];
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-3xl">
+    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-3xl pb-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-1">
         <Link
@@ -674,7 +674,7 @@ export default function EquipmentRepairsPage() {
       <div className="mt-4 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white">Equipment Repairs</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Equipment Repairs</h2>
             <p className="text-gray-400 mt-1 text-sm">
               {openCount > 0 ? (
                 <>
@@ -697,12 +697,12 @@ export default function EquipmentRepairsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 mb-5 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-1">
+      <div className="flex gap-1 mb-4 sm:mb-5 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
               activeTab === tab.id
                 ? "bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/25 shadow-sm"
                 : "text-gray-500 hover:text-gray-300"

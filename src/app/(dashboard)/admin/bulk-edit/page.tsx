@@ -254,7 +254,7 @@ export default function BulkEditPage() {
   if (!user?.isAdmin) return null;
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-3xl">
+    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-3xl pb-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">
@@ -273,7 +273,7 @@ export default function BulkEditPage() {
 
       {/* Header */}
       <div className="mt-4 mb-6">
-        <h2 className="text-2xl font-bold text-white">Manual Inventory Adjustment</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Manual Inventory Adjustment</h2>
         <p className="text-gray-400 mt-1 text-sm">
           Directly add, subtract, or set quantities for items in a warehouse
         </p>
@@ -403,7 +403,7 @@ export default function BulkEditPage() {
                           onChange={(e) =>
                             updateRow(row.id, { action: e.target.value as AdjustAction })
                           }
-                          className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#35B2FF] transition-colors appearance-none"
+                          className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-2 py-2 sm:py-1.5 text-xs text-white focus:outline-none focus:border-[#35B2FF] transition-colors appearance-none"
                         >
                           <option value="Set">Set</option>
                           <option value="Add">Add</option>
@@ -420,7 +420,8 @@ export default function BulkEditPage() {
                           placeholder={row.action === "Set" ? String(row.currentQty) : "0"}
                           value={row.inputValue}
                           onChange={(e) => updateRow(row.id, { inputValue: e.target.value })}
-                          className={`w-full max-w-[100px] bg-[#0f1117] border rounded-lg px-3 py-1.5 text-sm text-white text-right placeholder-gray-600 focus:outline-none transition-colors ${
+                          inputMode="decimal"
+                          className={`w-full sm:max-w-[100px] bg-[#0f1117] border rounded-lg px-3 py-2 sm:py-1.5 text-sm text-white text-right placeholder-gray-600 focus:outline-none transition-colors ${
                             isPending
                               ? "border-[#35B2FF]/50 focus:border-[#35B2FF]"
                               : "border-[#2a2f3e] focus:border-[#35B2FF]"
@@ -489,7 +490,7 @@ export default function BulkEditPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between gap-4 pt-1">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                   <p className="text-xs text-gray-500">
                     {pendingChanges.size > 0
                       ? `${pendingChanges.size} item${pendingChanges.size !== 1 ? "s" : ""} will be updated`
@@ -498,7 +499,7 @@ export default function BulkEditPage() {
                   <button
                     onClick={handleApply}
                     disabled={!canSubmit}
-                    className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <>

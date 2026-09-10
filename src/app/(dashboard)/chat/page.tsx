@@ -298,7 +298,7 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
   const loadContext = useCallback(async () => {
@@ -427,7 +427,10 @@ export default function ChatPage() {
   }, [input, streaming, loadingContext, messages, contextSummary]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // On touch keyboards Enter should add a newline — the send button is right
+    // there. Only hardware keyboards get Enter-to-send.
+    const isTouch = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+    if (e.key === "Enter" && !e.shiftKey && !isTouch) {
       e.preventDefault();
       send();
     }
@@ -436,10 +439,10 @@ export default function ChatPage() {
   const disabled = streaming || loadingContext || !rateState.canRequest;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-0px)] max-h-screen">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#2a2f3e] flex items-center gap-2 bg-[#0f1117] shrink-0">
-        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+      <div className="px-4 sm:px-6 py-3 border-b border-[#2a2f3e] flex items-center gap-2 bg-[#0f1117] shrink-0">
+        <svg className="w-4 h-4 text-yellow-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
         </svg>
         <h2 className="text-sm font-semibold text-white">Ask invntori</h2>
@@ -458,10 +461,10 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto scroll-touch px-4 py-5 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center gap-6 pt-12 max-w-lg mx-auto">
-            <svg className="w-12 h-12 text-yellow-400 opacity-80" fill="currentColor" viewBox="0 0 24 24">
+          <div className="flex flex-col items-center gap-5 pt-6 sm:pt-12 max-w-lg mx-auto">
+            <svg className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-400 opacity-80" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
             </svg>
             <div className="text-center">
@@ -474,7 +477,7 @@ export default function ChatPage() {
                   key={s}
                   onClick={() => send(s)}
                   disabled={disabled}
-                  className="w-full text-left px-4 py-3 rounded-xl bg-[#1a1f2e] border border-[#2a2f3e] text-sm text-gray-300 hover:border-[#35B2FF]/40 hover:text-white transition-colors disabled:opacity-40"
+                  className="w-full text-left px-4 py-3.5 rounded-xl bg-[#1a1f2e] border border-[#2a2f3e] text-sm text-gray-300 hover:border-[#35B2FF]/40 active:bg-white/[0.04] hover:text-white transition-colors disabled:opacity-40"
                 >
                   {s}
                 </button>
@@ -493,7 +496,7 @@ export default function ChatPage() {
                   </div>
                 )}
                 <div
-                  className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                  className={`max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
                     msg.role === "user"
                       ? "bg-[#35B2FF] text-white rounded-tr-sm"
                       : "bg-[#1a1f2e] border border-[#2a2f3e] text-gray-200 rounded-tl-sm"
@@ -525,8 +528,8 @@ export default function ChatPage() {
       )}
 
       {/* Input bar */}
-      <div className="px-4 py-4 border-t border-[#2a2f3e] bg-[#0f1117] shrink-0">
-        <div className="flex gap-2 items-end bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl px-4 py-3 focus-within:border-[#35B2FF]/60 transition-colors">
+      <div className="px-3 sm:px-4 pt-3 pb-3 border-t border-[#2a2f3e] bg-[#0f1117] shrink-0">
+        <div className="flex gap-2 items-end bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl px-3.5 py-2.5 focus-within:border-[#35B2FF]/60 transition-colors">
           <textarea
             ref={inputRef}
             rows={1}
@@ -535,7 +538,7 @@ export default function ChatPage() {
             onKeyDown={handleKeyDown}
             disabled={disabled}
             placeholder="Ask about your inventory…"
-            className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 resize-none focus:outline-none max-h-32 min-h-[20px]"
+            className="flex-1 min-w-0 bg-transparent text-sm text-white placeholder-gray-500 resize-none focus:outline-none max-h-32 min-h-[24px] py-1.5"
             style={{ height: "auto" }}
             onInput={(e) => {
               const t = e.currentTarget;
@@ -546,14 +549,15 @@ export default function ChatPage() {
           <button
             onClick={() => send()}
             disabled={!input.trim() || disabled}
-            className="shrink-0 w-8 h-8 rounded-full bg-[#35B2FF] flex items-center justify-center disabled:opacity-30 transition-opacity hover:bg-[#2da3f0]"
+            aria-label="Send message"
+            className="shrink-0 w-9 h-9 rounded-full bg-[#35B2FF] flex items-center justify-center disabled:opacity-30 transition-opacity hover:bg-[#2da3f0] active:scale-95"
           >
             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
             </svg>
           </button>
         </div>
-        <p className="text-center text-xs text-gray-600 mt-2">Shift+Enter for new line · Enter to send</p>
+        <p className="hidden sm:block text-center text-xs text-gray-600 mt-2">Shift+Enter for new line · Enter to send</p>
       </div>
     </div>
   );

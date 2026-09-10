@@ -70,7 +70,7 @@ export default function SettingsPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-2xl">
+    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-2xl pb-8">
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
         <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -78,7 +78,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="mb-8 mt-4">
-        <h2 className="text-2xl font-bold text-white">Company Settings</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Company Settings</h2>
         <p className="text-gray-400 mt-1 text-sm">Manage your company profile and integrations</p>
       </div>
 
@@ -149,11 +149,11 @@ export default function SettingsPage() {
         </div>
 
         {/* Save button */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             onClick={handleSave}
             disabled={!companyName.trim() || saving}
-            className="px-6 py-2.5 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-xl sm:rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save Settings"}
           </button>

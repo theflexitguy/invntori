@@ -5,6 +5,8 @@ import { collection, getDocs, addDoc, updateDoc, doc, writeBatch } from "firebas
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
+import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
+import { PageHeader, HeaderButton } from "@/components/ui/PageHeader";
 import type { FirestoreInventoryItem, Warehouse, Product, DetailField } from "@/lib/types";
 
 interface InventoryEntry extends FirestoreInventoryItem {
@@ -107,78 +109,73 @@ export default function InventoryPage() {
   const lowCount = items.filter((i) => (i.quantity ?? 0) <= (i.reorderThreshold ?? 0) && (i.reorderThreshold ?? 0) > 0).length;
 
   return (
-    <div className="p-6 xl:p-8 w-full">
-      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Inventory</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} items · {warehouses.length} warehouses</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {lowCount > 0 && (
-            <div className="flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 rounded-xl px-4 py-2.5">
-              <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span className="text-sm text-amber-400 font-medium">{lowCount} low stock</span>
-            </div>
-          )}
-          {user?.isAdmin && (
+    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+      <PageHeader
+        title="Inventory"
+        subtitle={`${filtered.length} items · ${warehouses.length} warehouses`}
+        actions={
+          user?.isAdmin ? (
             <>
-              <button
-                onClick={() => setShowWarehousesMgr(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-300 border border-[#2a2f3e] hover:text-white hover:border-white/20 transition-colors"
-              >
+              <HeaderButton variant="secondary" onClick={() => setShowWarehousesMgr(true)}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 Warehouses
-              </button>
-              <button
-                onClick={() => setShowProductsMgr(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors"
-              >
+              </HeaderButton>
+              <HeaderButton onClick={() => setShowProductsMgr(true)}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                Manage Products
-              </button>
+                Products
+              </HeaderButton>
             </>
-          )}
+          ) : undefined
+        }
+      />
+
+      {lowCount > 0 && (
+        <div className="flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 rounded-xl px-4 py-2.5 mb-4">
+          <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span className="text-sm text-amber-400 font-medium">{lowCount} low stock</span>
         </div>
-      </div>
+      )}
 
       {/* Filters */}
-      <div className="space-y-3 mb-6">
-        <div className="flex gap-3 flex-wrap items-center">
+      <div className="space-y-3 mb-5">
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 sm:items-center">
           <input
             type="search"
             placeholder="Search inventory…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-64"
+            className="w-full sm:w-64 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]"
           />
           <select
             value={selectedWarehouse}
             onChange={(e) => setSelectedWarehouse(e.target.value)}
-            className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-[#35B2FF]"
+            className="w-full sm:w-auto bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white focus:outline-none focus:border-[#35B2FF]"
           >
             <option value="all">All Warehouses</option>
             {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
-          <ToggleButton active={showLowOnly} onClick={() => setShowLowOnly((v) => !v)} label="Low Stock Only" color="amber" />
-          <ToggleButton active={hideOutOfStock} onClick={() => setHideOutOfStock((v) => !v)} label="Hide Out of Stock" color="gray" />
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+            <ToggleButton active={showLowOnly} onClick={() => setShowLowOnly((v) => !v)} label="Low Stock Only" color="amber" />
+            <ToggleButton active={hideOutOfStock} onClick={() => setHideOutOfStock((v) => !v)} label="Hide Out of Stock" color="gray" />
+          </div>
         </div>
 
         {categories.length > 1 && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors border ${
                   selectedCategory === cat
-                    ? "bg-[#35B2FF] text-white"
-                    : "bg-[#1a1f2e] border border-[#2a2f3e] text-gray-400 hover:text-white"
+                    ? "bg-[#35B2FF] text-white border-[#35B2FF]"
+                    : "bg-[#1a1f2e] border-[#2a2f3e] text-gray-400 hover:text-white"
                 }`}
               >
                 {cat}
@@ -204,13 +201,13 @@ export default function InventoryPage() {
               return (
                 <button
                   key={`${item.warehouseID}-${item.id}`}
-                  className="w-full text-left px-6 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                  className="w-full text-left px-4 sm:px-6 py-3.5 sm:py-4 hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors cursor-pointer"
                   onClick={() => setDetail(item)}
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-white">{item.name}</p>
+                        <p className="font-medium text-white break-words">{item.name}</p>
                         {outOfStock && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">Out of Stock</span>
                         )}
@@ -338,26 +335,8 @@ function ItemDetailModal({
   const hasDetailFields = (detailFields?.length ?? 0) > 0;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h3 className="text-lg font-bold text-white leading-tight">{item.name}</h3>
-            {item.category && <p className="text-xs text-gray-500 mt-1">{item.category}</p>}
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors ml-4 shrink-0">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
+    <Sheet title={item.name} subtitle={item.category} onClose={onClose}>
+      <>
         {outOfStock ? (
           <div className="mb-5 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">
             <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,7 +371,7 @@ function ItemDetailModal({
           {isAdmin && !editingQty && (
             <button
               onClick={() => { setNewQtyText(String(item.quantity ?? 0)); setEditingQty(true); }}
-              className="mt-2 text-xs text-[#35B2FF] hover:underline"
+              className="mt-3 px-3 py-2 -ml-1 rounded-lg text-xs font-medium text-[#35B2FF] bg-[#35B2FF]/10 border border-[#35B2FF]/20 active:bg-[#35B2FF]/20 transition-colors"
             >
               Adjust Quantity
             </button>
@@ -404,19 +383,20 @@ function ItemDetailModal({
                 min="0"
                 value={newQtyText}
                 onChange={(e) => setNewQtyText(e.target.value)}
-                className="w-24 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#35B2FF]"
+                inputMode="numeric"
+                className="w-24 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#35B2FF]"
               />
               <span className="text-xs text-gray-500">{item.unit ?? ""}</span>
               <button
                 onClick={handleSaveQty}
                 disabled={savingQty}
-                className="px-3 py-1.5 text-xs rounded-lg bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs font-medium rounded-lg bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
               >
                 {savingQty ? "…" : "Save"}
               </button>
               <button
                 onClick={() => setEditingQty(false)}
-                className="px-3 py-1.5 text-xs rounded-lg border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-xs rounded-lg border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -457,7 +437,7 @@ function ItemDetailModal({
               {isAdmin && !editingDetails && (
                 <button
                   onClick={() => { setDetailValues(item.details ?? {}); setEditingDetails(true); }}
-                  className="text-xs text-[#35B2FF] hover:opacity-80 transition-opacity"
+                  className="px-3 py-1.5 -mr-1 text-xs font-medium text-[#35B2FF] rounded-lg active:bg-[#35B2FF]/10 transition-colors"
                 >
                   Edit
                 </button>
@@ -480,7 +460,7 @@ function ItemDetailModal({
                     <input
                       value={detailValues[field.name] ?? ""}
                       onChange={(e) => setDetailValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
-                      className="w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
+                      className="w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
                       placeholder={`Enter ${field.name}`}
                     />
                   </div>
@@ -488,14 +468,14 @@ function ItemDetailModal({
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setEditingDetails(false)}
-                    className="flex-1 py-1.5 rounded-lg text-xs border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors"
+                    className="flex-1 py-2.5 rounded-lg text-xs border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveDetails}
                     disabled={savingDetails}
-                    className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
+                    className="flex-1 py-2.5 rounded-lg text-xs font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
                   >
                     {savingDetails ? "Saving…" : "Save"}
                   </button>
@@ -504,8 +484,8 @@ function ItemDetailModal({
             )}
           </div>
         )}
-      </div>
-    </div>
+      </>
+    </Sheet>
   );
 }
 
@@ -526,7 +506,7 @@ function ToggleButton({ active, onClick, label, color }: { active: boolean; onCl
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+      className={`shrink-0 whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-medium border transition-colors ${
         active ? colors[color] : "bg-transparent border-[#2a2f3e] text-gray-500 hover:text-gray-300"
       }`}
     >
@@ -639,101 +619,89 @@ function ProductsManagerModal({
   }), [products, search, showRetired]);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-
-        <div className="flex items-center justify-between p-5 border-b border-[#2a2f3e] shrink-0">
-          <h3 className="text-lg font-bold text-white">Manage Products</h3>
-          <div className="flex items-center gap-2">
+    <>
+      <Sheet title="Manage Products" onClose={onClose} size="xl">
+        <div className="sticky top-0 z-10 -mx-5 sm:-mx-6 px-5 sm:px-6 pb-3 bg-[#1a1f2e] flex flex-col sm:flex-row gap-2 sm:items-center">
+          <input
+            type="search"
+            placeholder="Search products…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 min-w-0 bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-3 py-2.5 sm:py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowRetired((v) => !v)}
+              className={`flex-1 sm:flex-none px-3 py-2.5 sm:py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
+                showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "border-[#2a2f3e] text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              {showRetired ? "Hiding Retired" : "Show Retired"}
+            </button>
             <button
               onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-lg text-xs font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors whitespace-nowrap"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Product
             </button>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         </div>
 
-        <div className="px-5 py-3 border-b border-[#2a2f3e] flex items-center gap-3 shrink-0">
-          <input
-            type="search"
-            placeholder="Search products…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 min-w-0 bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]"
-          />
-          <button
-            onClick={() => setShowRetired((v) => !v)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
-              showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "border-[#2a2f3e] text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            {showRetired ? "Hiding Retired" : "Show Retired"}
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12"><Spinner size={24} /></div>
-          ) : filtered.length === 0 ? (
-            <p className="text-center text-gray-500 py-12 text-sm">No products found</p>
-          ) : (
-            <div className="divide-y divide-[#2a2f3e]">
-              {filtered.map((product) => {
-                const totalQty = qtyByProduct[product.id!] ?? 0;
-                return (
-                  <div key={product.id} className="px-5 py-3.5 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-white text-sm">{product.name}</p>
-                        {product.isRetired && (
-                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/20">Retired</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {[product.category, product.unit].filter(Boolean).join(" · ")}
-                        {totalQty > 0 && <span className="text-gray-400 ml-2">{totalQty} in stock</span>}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => setEditProduct(product)}
-                        className="px-2.5 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => toggleRetire(product)}
-                        className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
-                          product.isRetired ? "text-green-400 hover:bg-green-400/10" : "text-amber-400 hover:bg-amber-400/10"
-                        }`}
-                      >
-                        {product.isRetired ? "Reactivate" : "Retire"}
-                      </button>
-                      {canDelete && (
-                        <button
-                          onClick={() => setConfirmDelete(product)}
-                          className="px-2.5 py-1.5 text-xs rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
-                        >
-                          Delete
-                        </button>
+        {loading ? (
+          <div className="flex items-center justify-center py-12"><Spinner size={24} /></div>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-gray-500 py-12 text-sm">No products found</p>
+        ) : (
+          <div className="divide-y divide-[#2a2f3e] -mx-5 sm:-mx-6">
+            {filtered.map((product) => {
+              const totalQty = qtyByProduct[product.id!] ?? 0;
+              return (
+                <div key={product.id} className="px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-white text-sm break-words">{product.name}</p>
+                      {product.isRetired && (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/20">Retired</span>
                       )}
                     </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {[product.category, product.unit].filter(Boolean).join(" · ")}
+                      {totalQty > 0 && <span className="text-gray-400 ml-2">{totalQty} in stock</span>}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+                  <div className="flex items-center gap-1 shrink-0 -ml-2 sm:ml-0">
+                    <button
+                      onClick={() => setEditProduct(product)}
+                      className="px-3 py-2 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => toggleRetire(product)}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors ${
+                        product.isRetired ? "text-green-400 hover:bg-green-400/10" : "text-amber-400 hover:bg-amber-400/10"
+                      }`}
+                    >
+                      {product.isRetired ? "Reactivate" : "Retire"}
+                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={() => setConfirmDelete(product)}
+                        className="px-3 py-2 text-xs rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Sheet>
 
       {(showAdd || editProduct) && (
         <ProductFormModal
@@ -744,20 +712,25 @@ function ProductsManagerModal({
       )}
 
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={() => setConfirmDelete(null)}>
-          <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h4 className="font-semibold text-white mb-2">Delete &quot;{confirmDelete.name}&quot;?</h4>
-            <p className="text-sm text-gray-400 mb-5">This will permanently remove the product and all its warehouse inventory records. This cannot be undone.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={() => handleDelete(confirmDelete)} disabled={deleting} className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 transition-colors disabled:opacity-50">
+        <Sheet
+          title={`Delete "${confirmDelete.name}"?`}
+          onClose={() => setConfirmDelete(null)}
+          size="sm"
+          zIndex={60}
+          footer={
+            <SheetActions onCancel={() => setConfirmDelete(null)}>
+              <PrimaryButton tone="red" disabled={deleting} onClick={() => handleDelete(confirmDelete)}>
                 {deleting ? "Deleting…" : "Delete Permanently"}
-              </button>
-            </div>
-          </div>
-        </div>
+              </PrimaryButton>
+            </SheetActions>
+          }
+        >
+          <p className="text-sm text-gray-400">
+            This will permanently remove the product and all its warehouse inventory records. This cannot be undone.
+          </p>
+        </Sheet>
       )}
-    </div>
+    </>
   );
 }
 
@@ -800,47 +773,38 @@ function ProductFormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-white">{isEdit ? "Edit Product" : "Add Product"}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="space-y-3 mb-5">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Name *</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Bifenthrin Spray" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Category</label>
-            <input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Chemical, Equipment" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Unit</label>
-            <input value={unit} onChange={(e) => setUnit(e.target.value)} className={inputCls} placeholder="e.g. oz, gallon, bottle" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Reorder Threshold</label>
-            <input type="number" min="0" value={threshold} onChange={(e) => setThreshold(e.target.value)} className={inputCls} placeholder="e.g. 10" />
-          </div>
-          {error && <p className="text-red-400 text-xs">{error}</p>}
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button
-            onClick={handleSave}
-            disabled={!name.trim() || saving}
-            className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
-          >
+    <Sheet
+      title={isEdit ? "Edit Product" : "Add Product"}
+      onClose={onClose}
+      zIndex={60}
+      footer={
+        <SheetActions onCancel={onClose}>
+          <PrimaryButton onClick={handleSave} disabled={!name.trim() || saving}>
             {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Product"}
-          </button>
+          </PrimaryButton>
+        </SheetActions>
+      }
+    >
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Name *</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Bifenthrin Spray" />
         </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Category</label>
+          <input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Chemical, Equipment" />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Unit</label>
+          <input value={unit} onChange={(e) => setUnit(e.target.value)} className={inputCls} placeholder="e.g. oz, gallon, bottle" />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Reorder Threshold</label>
+          <input type="number" inputMode="numeric" min="0" value={threshold} onChange={(e) => setThreshold(e.target.value)} className={inputCls} placeholder="e.g. 10" />
+        </div>
+        {error && <p className="text-red-400 text-xs">{error}</p>}
       </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -897,65 +861,66 @@ function WarehousesManagerModal({
   const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-
-        <div className="flex items-center justify-between p-5 border-b border-[#2a2f3e] shrink-0">
-          <h3 className="text-lg font-bold text-white">Manage Warehouses</h3>
-          <div className="flex items-center gap-2">
-            <button onClick={openAdd} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Add Warehouse
-            </button>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12"><Spinner size={24} /></div>
-          ) : warehouseList.length === 0 ? (
-            <p className="text-center text-gray-500 py-12 text-sm">No warehouses yet</p>
-          ) : (
-            <div className="divide-y divide-[#2a2f3e]">
-              {warehouseList.map((wh) => (
-                <div key={wh.id} className="px-5 py-4 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white text-sm">{wh.name}</p>
-                    {wh.location && <p className="text-xs text-gray-500 mt-0.5">{wh.location}</p>}
-                  </div>
-                  <button onClick={() => openEdit(wh)} className="px-2.5 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Edit</button>
+    <>
+      <Sheet
+        title="Manage Warehouses"
+        onClose={onClose}
+        size="lg"
+        footer={
+          <button
+            onClick={openAdd}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Add Warehouse
+          </button>
+        }
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-12"><Spinner size={24} /></div>
+        ) : warehouseList.length === 0 ? (
+          <p className="text-center text-gray-500 py-12 text-sm">No warehouses yet</p>
+        ) : (
+          <div className="divide-y divide-[#2a2f3e] -mx-5 sm:-mx-6">
+            {warehouseList.map((wh) => (
+              <div key={wh.id} className="px-5 sm:px-6 py-3.5 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-white text-sm break-words">{wh.name}</p>
+                  {wh.location && <p className="text-xs text-gray-500 mt-0.5">{wh.location}</p>}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {showForm && (
-          <div className="border-t border-[#2a2f3e] p-5 shrink-0">
-            <h4 className="text-sm font-semibold text-white mb-3">{editWarehouse ? "Edit Warehouse" : "New Warehouse"}</h4>
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Name *</label>
-                <input value={whName} onChange={(e) => setWhName(e.target.value)} className={inputCls} placeholder="e.g. Main Warehouse" />
+                <button onClick={() => openEdit(wh)} className="shrink-0 px-3 py-2 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors">Edit</button>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Location</label>
-                <input value={whLocation} onChange={(e) => setWhLocation(e.target.value)} className={inputCls} placeholder="e.g. 123 Main St" />
-              </div>
-              {formError && <p className="text-red-400 text-xs">{formError}</p>}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={!whName.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
-                {saving ? "Saving…" : editWarehouse ? "Save Changes" : "Add Warehouse"}
-              </button>
-            </div>
+            ))}
           </div>
         )}
-      </div>
-    </div>
+      </Sheet>
+
+      {showForm && (
+        <Sheet
+          title={editWarehouse ? "Edit Warehouse" : "New Warehouse"}
+          onClose={() => setShowForm(false)}
+          zIndex={60}
+          footer={
+            <SheetActions onCancel={() => setShowForm(false)}>
+              <PrimaryButton onClick={handleSave} disabled={!whName.trim() || saving}>
+                {saving ? "Saving…" : editWarehouse ? "Save Changes" : "Add Warehouse"}
+              </PrimaryButton>
+            </SheetActions>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Name *</label>
+              <input value={whName} onChange={(e) => setWhName(e.target.value)} className={inputCls} placeholder="e.g. Main Warehouse" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Location</label>
+              <input value={whLocation} onChange={(e) => setWhLocation(e.target.value)} className={inputCls} placeholder="e.g. 123 Main St" />
+            </div>
+            {formError && <p className="text-red-400 text-xs">{formError}</p>}
+          </div>
+        </Sheet>
+      )}
+    </>
   );
 }

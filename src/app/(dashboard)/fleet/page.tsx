@@ -6,6 +6,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { Badge } from "@/components/ui/Badge";
+import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
+import { PageHeader, HeaderButton, PlusIcon } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import type { Vehicle } from "@/lib/types";
 
@@ -65,61 +67,65 @@ export default function FleetPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-6 xl:p-8 w-full">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Fleet</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} vehicles</p>
-        </div>
-        {user?.isAdmin && (
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Add Vehicle
-          </button>
-        )}
-      </div>
+    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+      <PageHeader
+        title="Fleet"
+        subtitle={`${filtered.length} vehicles`}
+        actions={
+          user?.isAdmin ? (
+            <HeaderButton onClick={() => setShowAdd(true)}>
+              <PlusIcon />
+              Add Vehicle
+            </HeaderButton>
+          ) : undefined
+        }
+      />
 
-      <div className="flex gap-3 mb-6 flex-wrap items-center">
-        <input type="search" placeholder="Search by name, make, model, or plate…" value={search} onChange={(e) => setSearch(e.target.value)} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-72" />
-        <button onClick={() => setShowRetired((v) => !v)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "bg-transparent border-[#2a2f3e] text-gray-500 hover:text-gray-300"}`}>
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 sm:items-center">
+        <input type="search" placeholder="Search name, make, model, or plate…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-72 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]" />
+        <button onClick={() => setShowRetired((v) => !v)} className={`self-start shrink-0 whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-medium border transition-colors ${showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "bg-transparent border-[#2a2f3e] text-gray-500 hover:text-gray-300"}`}>
           {showRetired ? "Hiding Retired" : "Show Retired"}
         </button>
       </div>
 
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#2a2f3e]">
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Vehicle</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Year / Make / Model</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">License</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Driver</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Condition</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#2a2f3e]">
-            {filtered.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">No vehicles found</td></tr>
-            ) : (
-              filtered.map((v) => (
-                <tr key={v.id} className={`hover:bg-white/[0.02] transition-colors ${v.isRetired ? "opacity-50" : ""}`}>
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <Link href={`/fleet/${v.id}`} className="font-medium text-white hover:text-[#35B2FF] transition-colors">{v.name}</Link>
-                      {v.isRetired && <Badge variant="gray">Retired</Badge>}
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5 text-gray-400">{[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}</td>
-                  <td className="px-6 py-3.5 text-gray-400 font-mono text-xs">{v.licensePlate ?? "—"}</td>
-                  <td className="px-6 py-3.5 text-gray-400">{v.currentDriverName ?? "Unassigned"}</td>
-                  <td className="px-6 py-3.5">
-                    {v.isRetired ? <Badge variant="gray">Retired</Badge> : v.condition ? <Badge variant={conditionVariant[v.condition] ?? "gray"}>{conditionLabel[v.condition] ?? v.condition}</Badge> : <span className="text-gray-600">—</span>}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        {filtered.length === 0 ? (
+          <p className="px-6 py-10 text-center text-gray-500 text-sm">No vehicles found</p>
+        ) : (
+          <div className="divide-y divide-[#2a2f3e]">
+            {filtered.map((v) => (
+              <Link
+                key={v.id}
+                href={`/fleet/${v.id}`}
+                className={`flex items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors ${v.isRetired ? "opacity-50" : ""}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-white text-sm break-words">{v.name}</span>
+                    {v.isRetired ? (
+                      <Badge variant="gray">Retired</Badge>
+                    ) : v.condition ? (
+                      <Badge variant={conditionVariant[v.condition] ?? "gray"}>{conditionLabel[v.condition] ?? v.condition}</Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 truncate">
+                    {[[v.year, v.make, v.model].filter(Boolean).join(" "), v.licensePlate].filter(Boolean).join(" · ") || "No details"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    {v.currentDriverName ? (
+                      <span className="text-[#35B2FF]/80">Driver: {v.currentDriverName}</span>
+                    ) : (
+                      "Unassigned"
+                    )}
+                  </p>
+                </div>
+                <svg className="w-4 h-4 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {showAdd && <AddVehicleModal onSave={addVehicle} onClose={() => setShowAdd(false)} />}
@@ -156,19 +162,22 @@ function AddVehicleModal({ onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-white">Add Vehicle</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto space-y-3">
+    <Sheet
+      title="Add Vehicle"
+      onClose={onClose}
+      footer={
+        <SheetActions onCancel={onClose}>
+          <PrimaryButton onClick={handleSave} disabled={!name.trim() || !make.trim() || !model.trim() || !year.trim() || saving}>
+            {saving ? "Saving…" : "Add Vehicle"}
+          </PrimaryButton>
+        </SheetActions>
+      }
+    >
+      <div className="space-y-3">
           {[["Name / Nickname", name, setName, true], ["Make", make, setMake, true], ["Model", model, setModel, true]].map(([label, val, setter, req]) => (
             <div key={label as string}><label className="block text-xs text-gray-500 mb-1">{label as string}{req ? " *" : ""}</label><input value={val as string} onChange={(e) => (setter as (v: string) => void)(e.target.value)} className={inputCls} /></div>
           ))}
-          <div><label className="block text-xs text-gray-500 mb-1">Year *</label><input type="number" value={year} onChange={(e) => setYear(e.target.value)} className={inputCls} /></div>
+          <div><label className="block text-xs text-gray-500 mb-1">Year *</label><input type="number" inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value)} className={inputCls} /></div>
           {[["VIN", vin, setVin], ["License Plate", licensePlate, setLicensePlate], ["Color", color, setColor]].map(([label, val, setter]) => (
             <div key={label as string}><label className="block text-xs text-gray-500 mb-1">{label as string}</label><input value={val as string} onChange={(e) => (setter as (v: string) => void)(e.target.value)} className={inputCls} placeholder="Optional" /></div>
           ))}
@@ -180,14 +189,7 @@ function AddVehicleModal({ onSave, onClose }: {
           </div>
           <div><label className="block text-xs text-gray-500 mb-1">Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-16`} placeholder="Optional" /></div>
           {error && <p className="text-red-400 text-xs">{error}</p>}
-        </div>
-        <div className="flex gap-3 mt-5 pt-4 border-t border-[#2a2f3e]">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={!name.trim() || !make.trim() || !model.trim() || !year.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
-            {saving ? "Saving…" : "Add Vehicle"}
-          </button>
-        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }

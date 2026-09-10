@@ -6,6 +6,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { Badge } from "@/components/ui/Badge";
+import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
+import { PageHeader } from "@/components/ui/PageHeader";
 import type { Employee } from "@/lib/types";
 
 const PERMISSION_KEYS = [
@@ -87,19 +89,19 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="p-6 xl:p-8 w-full">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white">Employees</h2>
-        <p className="text-gray-400 mt-1 text-sm">{active.length} active · {inactive.length} inactive</p>
-      </div>
+    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+      <PageHeader
+        title="Employees"
+        subtitle={`${active.length} active · ${inactive.length} inactive`}
+      />
 
-      <div className="mb-5">
+      <div className="mb-4">
         <input
           type="search"
           placeholder="Search by name or email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-72"
+          className="w-full sm:w-72 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]"
         />
       </div>
 
@@ -135,28 +137,8 @@ export default function EmployeesPage() {
 
       {/* Detail panel */}
       {selected && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-          <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#35B2FF]/20 flex items-center justify-center">
-                  <span className="font-semibold text-[#35B2FF]">{selected.name[0].toUpperCase()}</span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-white">{selected.name}</p>
-                    <span className={`w-2 h-2 rounded-full ${selected.isActive !== false ? "bg-green-400" : "bg-gray-500"}`} />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{selected.email ?? "No email"}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelected(null)} className="text-gray-500 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
+        <Sheet title={selected.name} subtitle={selected.email ?? "No email"} onClose={() => setSelected(null)}>
+          <div>
             <div className="space-y-3 text-sm">
               <DetailRow label="Role">
                 <div className="flex gap-2">
@@ -181,14 +163,14 @@ export default function EmployeesPage() {
               <div className="mt-6 pt-5 border-t border-[#2a2f3e] space-y-2">
                 <button
                   onClick={() => { setEditing(selected); setSelected(null); }}
-                  className="w-full py-2.5 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors"
+                  className="w-full py-3 rounded-xl text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors"
                 >
-                  Edit Role & Permissions
+                  Edit Role &amp; Permissions
                 </button>
                 <button
                   onClick={() => toggleActive(selected)}
                   disabled={toggling === selected.id}
-                  className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                  className={`w-full py-3 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
                     selected.isActive !== false
                       ? "bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25"
                       : "bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25"
@@ -199,7 +181,7 @@ export default function EmployeesPage() {
               </div>
             )}
           </div>
-        </div>
+        </Sheet>
       )}
 
       {/* Edit modal */}
@@ -217,7 +199,7 @@ export default function EmployeesPage() {
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
     <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-      <div className="px-6 py-3 border-b border-[#2a2f3e] flex items-center gap-2">
+      <div className="px-4 sm:px-6 py-3 border-b border-[#2a2f3e] flex items-center gap-2">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</h3>
         <span className="text-xs text-gray-600">({count})</span>
       </div>
@@ -231,7 +213,7 @@ function EmployeeRow({ emp, isAdmin, toggling, onSelect, onToggle }: {
   onSelect: () => void; onToggle: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between px-6 py-3.5 hover:bg-white/[0.02] transition-colors">
+    <div className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-white/[0.02] transition-colors">
       <button className="flex items-center gap-3 flex-1 min-w-0 text-left" onClick={onSelect}>
         <div className="w-8 h-8 rounded-full bg-[#35B2FF]/20 flex items-center justify-center shrink-0">
           <span className="text-xs font-semibold text-[#35B2FF]">{emp.name[0].toUpperCase()}</span>
@@ -249,7 +231,7 @@ function EmployeeRow({ emp, isAdmin, toggling, onSelect, onToggle }: {
         <button
           onClick={onToggle}
           disabled={toggling}
-          className={`ml-3 shrink-0 px-3 py-1 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+          className={`ml-2 shrink-0 px-3 py-2 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
             emp.isActive !== false
               ? "border-[#2a2f3e] text-gray-500 hover:text-red-400 hover:border-red-400/30"
               : "border-green-500/20 text-green-400 hover:bg-green-500/10"
@@ -295,22 +277,20 @@ function EditEmployeeModal({ emp, onSave, onClose }: {
     finally { setSaving(false); }
   }
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
-
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="font-semibold text-white">Edit {emp.name}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Role &amp; Permissions</p>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto space-y-4">
+    <Sheet
+      title={`Edit ${emp.name}`}
+      subtitle="Role & Permissions"
+      onClose={onClose}
+      footer={
+        <SheetActions onCancel={onClose}>
+          <PrimaryButton onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Save Changes"}
+          </PrimaryButton>
+        </SheetActions>
+      }
+    >
+      <div className="space-y-4">
           {/* Role */}
           <div className="bg-[#0d1117] border border-[#2a2f3e] rounded-xl p-4 space-y-3">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</p>
@@ -329,16 +309,8 @@ function EditEmployeeModal({ emp, onSave, onClose }: {
               ))}
             </div>
           )}
-        </div>
-
-        <div className="flex gap-3 mt-5 pt-4 border-t border-[#2a2f3e]">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
-            {saving ? "Saving…" : "Save Changes"}
-          </button>
-        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -351,10 +323,13 @@ function ToggleRow({ label, description, checked, onChange }: { label: string; d
       </div>
       <button
         onClick={() => onChange(!checked)}
-        className={`relative shrink-0 w-10 h-5.5 rounded-full transition-colors mt-0.5 ${checked ? "bg-[#35B2FF]" : "bg-[#2a2f3e]"}`}
-        style={{ height: "22px" }}
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        className={`relative shrink-0 w-11 rounded-full transition-colors mt-0.5 ${checked ? "bg-[#35B2FF]" : "bg-[#2a2f3e]"}`}
+        style={{ height: "26px" }}
       >
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
+        <span className={`absolute top-0.5 w-[22px] h-[22px] rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[20px]" : "translate-x-0.5"}`} />
       </button>
     </div>
   );

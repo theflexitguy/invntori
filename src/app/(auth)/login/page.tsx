@@ -64,20 +64,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-[#0f1117] flex items-center justify-center px-4 py-8 pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))]">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8 sm:mb-10">
           <div className="flex justify-center mb-4">
-            <Image src="/logo.png" alt="invntori" width={64} height={64} className="rounded-2xl" />
+            <Image src="/logo.png" alt="" width={64} height={64} className="rounded-2xl w-14 h-14 sm:w-16 sm:h-16" priority />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">invntori</h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">invntori</h1>
           <p className="text-gray-400 mt-2 text-sm">Inventory management for your team</p>
         </div>
 
         <form
           onSubmit={handleLogin}
-          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-8 shadow-2xl space-y-5"
+          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5"
         >
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
@@ -87,7 +87,11 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-xl px-4 py-3.5 text-base text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition"
               placeholder="you@company.com"
             />
           </div>
@@ -100,7 +104,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition"
+              className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-xl px-4 py-3.5 text-base text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition"
               placeholder="••••••••"
             />
           </div>
@@ -114,7 +118,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#35B2FF] hover:bg-[#1a8fd1] disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors"
+            className="w-full bg-[#35B2FF] hover:bg-[#1a8fd1] active:bg-[#1a8fd1] disabled:opacity-50 text-white font-semibold rounded-xl py-3.5 transition-colors"
           >
             {loading ? "Signing in…" : "Sign In"}
           </button>

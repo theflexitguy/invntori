@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { Badge } from "@/components/ui/Badge";
+import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
 import Link from "next/link";
 import type { Equipment, EquipmentCheckout, EquipmentRepair, Employee } from "@/lib/types";
 
@@ -190,37 +191,37 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
-  if (!equipment) return <div className="p-8 text-center text-gray-500">Equipment not found.</div>;
+  if (!equipment) return <div className="p-6 sm:p-8 text-center text-gray-500">Equipment not found.</div>;
 
   const checkedOutSince = equipment.currentCheckedOutAt
     ? ("toDate" in equipment.currentCheckedOutAt ? (equipment.currentCheckedOutAt as { toDate: () => Date }).toDate() : new Date((equipment.currentCheckedOutAt as { seconds: number }).seconds * 1000)).toLocaleDateString()
     : null;
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-3xl">
-      <Link href="/equipment" className="text-sm text-gray-500 hover:text-white transition-colors flex items-center gap-1 mb-4">
+    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-3xl pb-8">
+      <Link href="/equipment" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-white transition-colors mb-3 -ml-1 py-1">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         Equipment
       </Link>
 
-      <div className="flex items-start justify-between gap-3 mb-6">
-        <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-2xl font-bold text-white">{equipment.name}</h2>
+      <div className="flex items-start justify-between gap-3 mb-5 sm:mb-6">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h2 className="text-xl sm:text-2xl font-bold text-white break-words">{equipment.name}</h2>
             <Badge variant={statusVariant[equipment.status] ?? "gray"}>{statusLabel[equipment.status] ?? equipment.status}</Badge>
           </div>
           {equipment.category && <p className="text-gray-400 mt-1 text-sm">{equipment.category}</p>}
         </div>
         {user?.isAdmin && (
-          <button onClick={() => setShowEdit(true)} className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#2a2f3e] text-gray-400 hover:text-white hover:border-[#35B2FF]/40 transition-colors">
+          <button onClick={() => setShowEdit(true)} className="shrink-0 px-4 py-2 rounded-lg text-xs font-medium border border-[#2a2f3e] text-gray-400 hover:text-white hover:border-[#35B2FF]/40 active:bg-white/5 transition-colors">
             Edit
           </button>
         )}
       </div>
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-6 mb-4">
+      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4 sm:p-6 mb-4">
         <h3 className="text-sm font-semibold text-white mb-4">Details</h3>
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+        <dl className="grid grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-4 text-sm">
           <InfoRow label="Serial Number" value={equipment.serialNumber} />
           <InfoRow label="Checked Out To" value={equipment.currentHolderName} />
           {checkedOutSince && <InfoRow label="Since" value={checkedOutSince} />}
@@ -230,17 +231,17 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
 
       {/* Custom Fields */}
       {(Object.keys(equipment.customFields ?? {}).length > 0 || user?.isAdmin) && (
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-6 mb-4">
+        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4 sm:p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-white">Custom Fields</h3>
             {user?.isAdmin && (
-              <button onClick={() => setShowCustomFields(true)} className="text-xs text-[#35B2FF] hover:opacity-80 transition-opacity">Edit Fields</button>
+              <button onClick={() => setShowCustomFields(true)} className="shrink-0 px-3 py-1.5 -mr-1 rounded-lg text-xs font-medium text-[#35B2FF] active:bg-[#35B2FF]/10 transition-colors">Edit Fields</button>
             )}
           </div>
           {Object.keys(equipment.customFields ?? {}).length === 0 ? (
             <p className="text-xs text-gray-500">No custom fields yet. Click Edit Fields to add some.</p>
           ) : (
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <dl className="grid grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-4 text-sm">
               {Object.entries(equipment.customFields ?? {}).map(([key, value]) => (
                 <InfoRow key={key} label={key} value={value} />
               ))}
@@ -283,9 +284,9 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
 
       <Section title="Assignment History" count={checkouts.length}>
         {checkouts.length === 0 ? (
-          <p className="text-gray-500 text-sm px-6 py-4">No checkout history</p>
+          <p className="text-gray-500 text-sm px-4 sm:px-6 py-4">No checkout history</p>
         ) : checkouts.map((c) => (
-          <div key={c.id} className="px-6 py-3.5 border-t border-[#2a2f3e] first:border-0 text-sm">
+          <div key={c.id} className="px-4 sm:px-6 py-3.5 border-t border-[#2a2f3e] first:border-0 text-sm">
             <p className="text-white font-medium">{c.employeeName}</p>
             <p className="text-gray-500 text-xs mt-0.5">
               {formatDate(c.checkedOutAt)} {c.returnedAt ? `→ ${formatDate(c.returnedAt)}` : "· Still out"}
@@ -297,9 +298,9 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
 
       <Section title="Repair History" count={repairs.length}>
         {repairs.length === 0 ? (
-          <p className="text-gray-500 text-sm px-6 py-4">No repair history</p>
+          <p className="text-gray-500 text-sm px-4 sm:px-6 py-4">No repair history</p>
         ) : repairs.map((r) => (
-          <div key={r.id} className="px-6 py-3.5 border-t border-[#2a2f3e] first:border-0 text-sm">
+          <div key={r.id} className="px-4 sm:px-6 py-3.5 border-t border-[#2a2f3e] first:border-0 text-sm">
             <div className="flex justify-between items-start gap-2">
               <p className="text-white font-medium">{r.description}</p>
               <RepairBadge status={r.status} />
@@ -333,7 +334,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
 
 function Btn({ onClick, disabled, color, children }: { onClick: () => void; disabled: boolean; color: "blue"|"green"|"yellow"|"red"; children: React.ReactNode }) {
   const c = { blue: "bg-[#35B2FF]/10 text-[#35B2FF] border-[#35B2FF]/20 hover:bg-[#35B2FF]/20", green: "bg-green-400/10 text-green-400 border-green-400/20 hover:bg-green-400/20", yellow: "bg-amber-400/10 text-amber-400 border-amber-400/20 hover:bg-amber-400/20", red: "bg-red-400/10 text-red-400 border-red-400/20 hover:bg-red-400/20" };
-  return <button onClick={onClick} disabled={disabled} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${c[color]}`}>{children}</button>;
+  return <button onClick={onClick} disabled={disabled} className={`px-4 py-2.5 sm:py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${c[color]}`}>{children}</button>;
 }
 
 function InfoRow({ label, value, span }: { label: string; value?: string | null; span?: boolean }) {
@@ -348,7 +349,7 @@ function InfoRow({ label, value, span }: { label: string; value?: string | null;
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
     <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden mb-4">
-      <div className="px-6 py-4 border-b border-[#2a2f3e] flex items-center gap-2">
+      <div className="px-4 sm:px-6 py-3.5 border-b border-[#2a2f3e] flex items-center gap-2">
         <h3 className="text-sm font-semibold text-white">{title}</h3>
         <span className="text-xs text-gray-500">({count})</span>
       </div>
@@ -374,17 +375,9 @@ const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-white">{title}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Sheet title={title} onClose={onClose}>
+      {children}
+    </Sheet>
   );
 }
 
@@ -397,9 +390,9 @@ function AssignModal({ title, itemName, employees, currentUID, onSave, onClose, 
     <Modal title={title} onClose={onClose}>
       <p className="text-sm text-gray-400 mb-3">{itemName}</p>
       <input type="search" placeholder="Search employees…" value={search} onChange={(e) => setSearch(e.target.value)} className={`${inputCls} mb-3`} />
-      <div className="max-h-44 overflow-y-auto space-y-1 mb-3">
+      <div className="max-h-[38vh] overflow-y-auto scroll-touch space-y-1 mb-3 -mx-1 px-1">
         {filtered.map((emp) => (
-          <button key={emp.id} onClick={() => setSelected(emp)} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${selected?.id === emp.id ? "bg-[#35B2FF]/15 text-white" : "text-gray-400 hover:bg-white/[0.04]"}`}>
+          <button key={emp.id} onClick={() => setSelected(emp)} className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm transition-colors ${selected?.id === emp.id ? "bg-[#35B2FF]/15 text-white" : "text-gray-400 hover:bg-white/[0.04]"}`}>
             <span>{emp.name}</span>
             {selected?.id === emp.id && <svg className="w-4 h-4 text-[#35B2FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
           </button>
@@ -408,8 +401,8 @@ function AssignModal({ title, itemName, employees, currentUID, onSave, onClose, 
       </div>
       <textarea placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-16 mb-4`} />
       <div className="flex gap-3">
-        <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-        <button onClick={() => selected && onSave(selected, notes)} disabled={!selected || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">{saving ? "Saving…" : "Assign"}</button>
+        <button onClick={onClose} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+        <button onClick={() => selected && onSave(selected, notes)} disabled={!selected || saving} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">{saving ? "Saving…" : "Assign"}</button>
       </div>
     </Modal>
   );
@@ -422,8 +415,8 @@ function ReportModal({ itemName, onSave, onClose, saving }: { itemName: string; 
       <p className="text-sm text-gray-400 mb-3">{itemName}</p>
       <textarea placeholder="Describe the issue or what needs repair…" value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputCls} resize-none h-24 mb-4`} />
       <div className="flex gap-3">
-        <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-        <button onClick={() => onSave(description)} disabled={!description.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-amber-400/10 text-amber-400 border border-amber-400/20 hover:bg-amber-400/20 transition-colors disabled:opacity-50">{saving ? "Submitting…" : "Submit"}</button>
+        <button onClick={onClose} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+        <button onClick={() => onSave(description)} disabled={!description.trim() || saving} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-amber-400/10 text-amber-400 border border-amber-400/20 hover:bg-amber-400/20 transition-colors disabled:opacity-50">{saving ? "Submitting…" : "Submit"}</button>
       </div>
     </Modal>
   );
@@ -449,8 +442,8 @@ function EditEquipmentModal({ equipment, onSave, onClose, saving }: { equipment:
         </div>
       </div>
       <div className="flex gap-3">
-        <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-        <button onClick={() => onSave(name, category, serialNumber, notes)} disabled={!name.trim() || !category.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
+        <button onClick={onClose} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+        <button onClick={() => onSave(name, category, serialNumber, notes)} disabled={!name.trim() || !category.trim() || saving} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
       </div>
     </Modal>
   );
@@ -461,8 +454,8 @@ function ConfirmModal({ title, message, confirmLabel, danger, onConfirm, onClose
     <Modal title={title} onClose={onClose}>
       <p className="text-sm text-gray-400 mb-6">{message}</p>
       <div className="flex gap-3">
-        <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-        <button onClick={onConfirm} disabled={confirming} className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 ${danger ? "bg-red-500/15 text-red-400 border-red-500/20 hover:bg-red-500/25" : "bg-[#35B2FF]/15 text-[#35B2FF] border-[#35B2FF]/20 hover:bg-[#35B2FF]/25"}`}>{confirming ? "…" : confirmLabel}</button>
+        <button onClick={onClose} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+        <button onClick={onConfirm} disabled={confirming} className={`flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 ${danger ? "bg-red-500/15 text-red-400 border-red-500/20 hover:bg-red-500/25" : "bg-[#35B2FF]/15 text-[#35B2FF] border-[#35B2FF]/20 hover:bg-[#35B2FF]/25"}`}>{confirming ? "…" : confirmLabel}</button>
       </div>
     </Modal>
   );
@@ -491,16 +484,20 @@ function CustomFieldsModal({ fields, onSave, onClose, saving }: { fields: Record
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-white">Custom Fields</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
+    <Sheet
+      title="Custom Fields"
+      onClose={onClose}
+      size="lg"
+      footer={
+        <SheetActions onCancel={onClose}>
+          <PrimaryButton onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Save Fields"}
+          </PrimaryButton>
+        </SheetActions>
+      }
+    >
 
-        <div className="space-y-2 mb-3 max-h-64 overflow-y-auto">
+        <div className="space-y-2 mb-3">
           {entries.length === 0 && (
             <p className="text-xs text-gray-500 py-2">No custom fields yet. Click + Add Field below.</p>
           )}
@@ -510,35 +507,27 @@ function CustomFieldsModal({ fields, onSave, onClose, saving }: { fields: Record
                 value={entry.key}
                 onChange={(e) => updateRow(i, "key", e.target.value)}
                 placeholder="Field name"
-                className="flex-1 bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
+                className="flex-1 min-w-0 bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
               />
               <input
                 value={entry.value}
                 onChange={(e) => updateRow(i, "value", e.target.value)}
                 placeholder="Value"
-                className="flex-1 bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
+                className="flex-1 min-w-0 bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
               />
-              <button onClick={() => removeRow(i)} className="text-gray-600 hover:text-red-400 transition-colors shrink-0">
+              <button onClick={() => removeRow(i)} aria-label="Remove field" className="p-2 -mr-1 rounded-lg text-gray-600 hover:text-red-400 active:bg-white/5 transition-colors shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
           ))}
         </div>
 
-        <button onClick={addRow} className="flex items-center gap-1.5 text-xs text-[#35B2FF] hover:opacity-80 transition-opacity mb-4">
+        <button onClick={addRow} className="flex items-center gap-1.5 px-2.5 py-2 -ml-2 rounded-lg text-xs font-medium text-[#35B2FF] active:bg-[#35B2FF]/10 transition-colors mb-2">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           Add Field
         </button>
 
-        {keyError && <p className="text-red-400 text-xs mb-3">{keyError}</p>}
-
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
-            {saving ? "Saving…" : "Save Fields"}
-          </button>
-        </div>
-      </div>
-    </div>
+        {keyError && <p className="text-red-400 text-xs mb-1">{keyError}</p>}
+    </Sheet>
   );
 }

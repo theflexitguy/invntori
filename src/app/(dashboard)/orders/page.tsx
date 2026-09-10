@@ -5,6 +5,8 @@ import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc, serverTime
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
+import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
+import { PageHeader, HeaderButton, PlusIcon } from "@/components/ui/PageHeader";
 import type { Product } from "@/lib/types";
 
 type POStatus = "draft" | "submitted" | "approved" | "Pending" | "PartiallyReceived" | "Completed" | "received" | "cancelled";
@@ -136,30 +138,32 @@ export default function OrdersPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-6 xl:p-8 w-full">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Purchase Orders</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} orders</p>
-        </div>
-        {user?.isAdmin && (
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            New Order
-          </button>
-        )}
-      </div>
+    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+      <PageHeader
+        title="Purchase Orders"
+        subtitle={`${filtered.length} orders`}
+        actions={
+          user?.isAdmin ? (
+            <HeaderButton onClick={() => setShowCreate(true)}>
+              <PlusIcon />
+              New Order
+            </HeaderButton>
+          ) : undefined
+        }
+      />
 
-      <div className="flex gap-3 mb-5 flex-wrap items-center">
-        <div className="flex gap-1 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg p-1">
-          {STATUS_TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${tab === t ? "bg-[#35B2FF]/20 text-[#35B2FF]" : "text-gray-500 hover:text-white"}`}>
-              {t}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-[#35B2FF]/30" : "bg-white/5"}`}>{counts[t]}</span>
-            </button>
-          ))}
+      <div className="space-y-2.5 sm:space-y-0 sm:flex sm:gap-3 mb-4 sm:items-center">
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar">
+          <div className="inline-flex gap-1 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-1">
+            {STATUS_TABS.map((t) => (
+              <button key={t} onClick={() => setTab(t)} className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${tab === t ? "bg-[#35B2FF]/20 text-[#35B2FF]" : "text-gray-500 hover:text-white"}`}>
+                {t}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-[#35B2FF]/30" : "bg-white/5"}`}>{counts[t]}</span>
+              </button>
+            ))}
+          </div>
         </div>
-        <input type="search" placeholder="Search vendor, item…" value={search} onChange={(e) => setSearch(e.target.value)} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-64" />
+        <input type="search" placeholder="Search vendor, item…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-64 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]" />
       </div>
 
       <div className="space-y-3">
@@ -173,8 +177,8 @@ export default function OrdersPage() {
             const isOverdue = order.expectedDate && order.expectedDate < new Date() && isPending;
             return (
               <div key={order.id} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-                <button className="w-full px-6 py-4 text-left hover:bg-white/[0.02] transition-colors" onClick={() => setExpanded(isExpanded ? null : order.id)}>
-                  <div className="flex items-start justify-between gap-4">
+                <button className="w-full px-4 sm:px-6 py-4 text-left hover:bg-white/[0.02] active:bg-white/[0.04] transition-colors" onClick={() => setExpanded(isExpanded ? null : order.id)}>
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium border ${sc.bg} ${sc.text} ${sc.border}`}>{displayStatus(order.status)}</span>
@@ -182,7 +186,7 @@ export default function OrdersPage() {
                         <span className="text-white font-medium">{order.vendorName}</span>
                         {order.vendorRef && <span className="text-xs text-gray-500 font-mono">#{order.vendorRef}</span>}
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-x-3 gap-y-1 text-xs text-gray-500 flex-wrap">
                         {order.createdAt && <span>{order.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
                         {order.expectedDate && <span>Expected: {order.expectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
                         <span>{order.items.length} item{order.items.length !== 1 ? "s" : ""}</span>
@@ -194,13 +198,13 @@ export default function OrdersPage() {
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-[#2a2f3e] px-6 py-4">
+                  <div className="border-t border-[#2a2f3e] px-4 sm:px-6 py-4">
                     {order.items.length > 0 ? (
                       <div className="space-y-2 mb-3">
                         {order.items.map((item, i) => (
-                          <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-[#2a2f3e] last:border-0">
-                            <span className="text-white">{item.productName}</span>
-                            <div className="text-right">
+                          <div key={i} className="flex items-start justify-between text-sm py-2 border-b border-[#2a2f3e] last:border-0 gap-2">
+                            <span className="text-white min-w-0 break-words">{item.productName}</span>
+                            <div className="text-right shrink-0 ml-3">
                               <span className="text-gray-400">{item.quantity} {item.unit ?? ""}</span>
                               {item.unitCost !== undefined && <span className="text-gray-600 text-xs ml-2">@ {item.unitCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>}
                             </div>
@@ -210,7 +214,7 @@ export default function OrdersPage() {
                     ) : <p className="text-xs text-gray-500 mb-3">No line items</p>}
                     {order.notes && <p className="text-xs text-gray-500 mb-3">Note: {order.notes}</p>}
                     {user?.isAdmin && isPending && (
-                      <button onClick={() => markReceived(order.id)} disabled={updating === order.id} className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors disabled:opacity-50">
+                      <button onClick={() => markReceived(order.id)} disabled={updating === order.id} className="w-full sm:w-auto px-4 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors disabled:opacity-50">
                         {updating === order.id ? "Updating…" : "Mark as Received"}
                       </button>
                     )}
@@ -282,17 +286,20 @@ function CreateOrderModal({ companyID, onSave, onClose }: {
   const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-lg max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-white">New Purchase Order</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+    <Sheet
+      title="New Purchase Order"
+      onClose={onClose}
+      size="lg"
+      footer={
+        <SheetActions onCancel={onClose}>
+          <PrimaryButton onClick={handleSave} disabled={!canSave}>
+            {saving ? "Creating…" : "Create Order"}
+          </PrimaryButton>
+        </SheetActions>
+      }
+    >
+      <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Vendor Name *</label>
               <input value={vendorName} onChange={(e) => setVendorName(e.target.value)} className={inputCls} placeholder="e.g. Supplier Co." />
@@ -310,7 +317,7 @@ function CreateOrderModal({ companyID, onSave, onClose }: {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs text-gray-500">Line Items *</label>
-              <button onClick={addItem} className="text-xs text-[#35B2FF] hover:opacity-80 transition-opacity flex items-center gap-1">
+              <button onClick={addItem} className="px-2.5 py-1.5 -mr-1 rounded-lg text-xs font-medium text-[#35B2FF] active:bg-[#35B2FF]/10 transition-colors flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 Add Item
               </button>
@@ -318,19 +325,19 @@ function CreateOrderModal({ companyID, onSave, onClose }: {
             <div className="space-y-2">
               {items.map((item, index) => (
                 <div key={index} className="flex gap-2 items-start">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <select value={item.productName} onChange={(e) => selectProduct(index, e.target.value)} className={`${inputCls} appearance-none mb-1`}>
                       <option value="">Select product…</option>
                       {products.map((p) => <option key={p.id} value={p.name}>{p.name}{p.unit ? ` (${p.unit})` : ""}</option>)}
                     </select>
-                    <div className="flex gap-1">
-                      <input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, "quantity", Math.max(1, parseInt(e.target.value) || 1))} className={inputCls} placeholder="Qty" />
+                    <div className="flex gap-1.5">
+                      <input type="number" inputMode="numeric" min="1" value={item.quantity} onChange={(e) => updateItem(index, "quantity", Math.max(1, parseInt(e.target.value) || 1))} className={inputCls} placeholder="Qty" />
                       <input value={item.unit} onChange={(e) => updateItem(index, "unit", e.target.value)} className={inputCls} placeholder="Unit" />
-                      <input type="number" value={item.unitCost} onChange={(e) => updateItem(index, "unitCost", e.target.value)} className={inputCls} placeholder="$/unit" />
+                      <input type="number" inputMode="decimal" value={item.unitCost} onChange={(e) => updateItem(index, "unitCost", e.target.value)} className={inputCls} placeholder="$/unit" />
                     </div>
                   </div>
                   {items.length > 1 && (
-                    <button onClick={() => removeItem(index)} className="mt-2 text-gray-500 hover:text-red-400 transition-colors shrink-0">
+                    <button onClick={() => removeItem(index)} aria-label="Remove line item" className="mt-1 p-2 rounded-lg text-gray-500 hover:text-red-400 active:bg-white/5 transition-colors shrink-0">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   )}
@@ -341,17 +348,9 @@ function CreateOrderModal({ companyID, onSave, onClose }: {
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">Notes</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-16`} placeholder="Optional" />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-20`} placeholder="Optional" />
           </div>
-        </div>
-
-        <div className="flex gap-3 mt-5 pt-4 border-t border-[#2a2f3e]">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={!canSave} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
-            {saving ? "Creating…" : "Create Order"}
-          </button>
-        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }
