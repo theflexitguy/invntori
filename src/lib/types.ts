@@ -84,6 +84,9 @@ export interface Employee {
   fcmToken?: string;
   createdAt?: Timestamp;
   managePermissions?: string[];
+  /** Links the employee to their FieldRoutes account for inventory auditing. */
+  fieldroutesEmployeeID?: number;
+  customFields?: Record<string, string>;
 }
 
 // ── Equipment ──────────────────────────────────────────────────────────────

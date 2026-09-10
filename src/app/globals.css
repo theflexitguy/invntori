@@ -145,6 +145,11 @@ textarea {
   box-shadow: inset 0 -0.5px 0 0 var(--separator);
 }
 
+/* A page-supplied inline nav title replaces the fade-in route title */
+#navbar-slot-title:not(:empty) + h1 {
+  display: none;
+}
+
 /* Bottom-sheet entrance (mobile modals) */
 @keyframes sheet-up {
   from {

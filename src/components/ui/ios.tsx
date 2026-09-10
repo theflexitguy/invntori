@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
-import { ChevronRightIcon } from "@/components/layout/nav";
+import { ChevronRightIcon, ChevronDownIcon } from "@/components/layout/nav";
 
 /* ──────────────────────────────────────────────────────────────────────────
    Building blocks that mirror the native app's UIKit vocabulary: large
@@ -171,15 +171,17 @@ export function SearchField({
   value,
   onChange,
   placeholder = "Search",
+  shape = "rounded",
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  shape?: "rounded" | "pill";
 }) {
   return (
     <div className="relative">
       <svg
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-[17px] h-[17px] text-[rgba(235,235,245,0.4)] pointer-events-none"
+        className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[rgba(235,235,245,0.4)] pointer-events-none"
         fill="currentColor"
         viewBox="0 0 24 24"
         aria-hidden="true"
@@ -191,7 +193,9 @@ export function SearchField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-[#1C1C1E] rounded-[12px] pl-9 pr-3 py-3 text-[17px] text-white placeholder-[rgba(235,235,245,0.4)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF]/60"
+        className={`w-full bg-[#1C1C1E] pl-10 pr-3 py-3 text-[17px] text-white placeholder-[rgba(235,235,245,0.4)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF]/60 ${
+          shape === "pill" ? "rounded-full" : "rounded-[12px]"
+        }`}
       />
     </div>
   );
@@ -236,5 +240,152 @@ export function Pill({
     >
       {children}
     </span>
+  );
+}
+
+
+/** Circular nav-bar button, as used for filter / add / avatar in the native app. */
+export function NavCircleButton({
+  onClick,
+  href,
+  label,
+  tint = "white",
+  children,
+}: {
+  onClick?: () => void;
+  href?: string;
+  label: string;
+  tint?: "white" | "blue";
+  children: ReactNode;
+}) {
+  const cls = `flex items-center justify-center w-9 h-9 rounded-full bg-[#1C1C1E] active:bg-[#2C2C2E] transition-colors ${
+    tint === "blue" ? "text-[#0A84FF]" : "text-white"
+  }`;
+  if (href) {
+    return (
+      <Link href={href} aria-label={label} className={cls}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <button onClick={onClick} aria-label={label} className={cls}>
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Card with a tinted header row — the native app's section card
+ * ("Employee Info", "Office Assignment", …).
+ */
+export function CardSection({
+  Icon,
+  title,
+  children,
+  action,
+}: {
+  Icon?: ComponentType<{ className?: string }>;
+  title: ReactNode;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="bg-[#1C1C1E] rounded-[14px] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && <Icon className="w-[19px] h-[19px] text-[#0A84FF] shrink-0" />}
+        <h3 className="text-[17px] font-semibold text-[#0A84FF] flex-1 min-w-0">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Full-width dropdown row rendered as a card, as on the native filter panel. */
+export function SelectRow({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const current = options.find((o) => o.value === value);
+  return (
+    <div className="relative bg-[#1C1C1E] rounded-[12px]">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className="w-full appearance-none bg-transparent px-4 py-3.5 pr-10 text-[17px] font-medium text-[#0A84FF] focus:outline-none"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {label}: {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 w-[17px] h-[17px] text-[#0A84FF]" />
+      <span className="sr-only">{current?.label}</span>
+    </div>
+  );
+}
+
+/** Full-width primary capsule action, e.g. "Add New Employee". */
+export function BigButton({
+  onClick,
+  href,
+  children,
+  tone = "blue",
+}: {
+  onClick?: () => void;
+  href?: string;
+  children: ReactNode;
+  tone?: "blue" | "red";
+}) {
+  const cls = `w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-[14px] text-[17px] font-semibold transition-colors ${
+    tone === "red"
+      ? "bg-[#FF453A]/15 text-[#FF453A] active:bg-[#FF453A]/25"
+      : "bg-[#0A84FF] text-white active:bg-[#0071E3]"
+  }`;
+  if (href) {
+    return (
+      <Link href={href} className={cls}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <button onClick={onClick} className={cls}>
+      {children}
+    </button>
+  );
+}
+
+/** Label + value row inside a CardSection. */
+export function InfoRow({
+  Icon,
+  iconClass = "text-white",
+  label,
+  value,
+  trailing,
+}: {
+  Icon?: ComponentType<{ className?: string }>;
+  iconClass?: string;
+  label: ReactNode;
+  value?: ReactNode;
+  trailing?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      {Icon && <Icon className={`w-[19px] h-[19px] shrink-0 ${iconClass}`} />}
+      <span className="text-[17px] text-white min-w-0 flex-1 break-words">{label}</span>
+      {value && <span className="text-[15px] text-[rgba(235,235,245,0.6)] shrink-0">{value}</span>}
+      {trailing}
+    </div>
   );
 }
