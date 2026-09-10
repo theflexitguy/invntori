@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -67,6 +68,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-10">
+          <div className="flex justify-center mb-4">
+            <Image src="/logo.png" alt="invntori" width={64} height={64} className="rounded-2xl" />
+          </div>
           <h1 className="text-4xl font-black text-white tracking-tight">invntori</h1>
           <p className="text-gray-400 mt-2 text-sm">Inventory management for your team</p>
         </div>

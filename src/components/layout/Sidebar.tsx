@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -69,11 +70,14 @@ export function Sidebar() {
   return (
     <aside className="w-60 bg-[#0f1117] border-r border-[#1e2130] flex flex-col h-screen sticky top-0 shrink-0">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-[#1e2130]">
-        <h1 className="text-xl font-black text-white tracking-tight">invntori</h1>
-        {user?.companyID && (
-          <p className="text-xs text-gray-500 mt-0.5 truncate">{user.companyID}</p>
-        )}
+      <div className="px-5 py-4 border-b border-[#1e2130] flex items-center gap-3">
+        <Image src="/logo.png" alt="invntori" width={32} height={32} className="rounded-lg" />
+        <div>
+          <h1 className="text-lg font-black text-white tracking-tight leading-none">invntori</h1>
+          {user?.companyID && (
+            <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[140px]">{user.companyID}</p>
+          )}
+        </div>
       </div>
 
       {/* Nav */}
