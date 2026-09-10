@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   collection, getDocs, query, orderBy, limit, where
 } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import Link from "next/link";
+
+const CLOUD_FUNCTION_URL = "https://us-central1-premium-inventory-app.cloudfunctions.net/askInvntori";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -108,9 +111,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [rangeDays, setRangeDays] = useState(30);
   const [insightsOpen, setInsightsOpen] = useState(true);
+  const [aiInsights, setAiInsights] = useState<string[] | null>(null);
+  const [generatingInsights, setGeneratingInsights] = useState(false);
+  const [aiNotConfigured, setAiNotConfigured] = useState(false);
+
+  const prevDataRef = useRef<DashboardData | null>(null);
+  const insightsAbortRef = useRef<AbortController | null>(null);
 
   const startDate = useMemo(() => subtractDays(rangeDays), [rangeDays]);
-  const endDate = useMemo(() => new Date(), []);
 
   const load = useCallback(async () => {
     if (!user?.companyID) return;
@@ -127,7 +135,6 @@ export default function DashboardPage() {
         getDocs(query(collection(db, "companies", cid, "purchaseOrders"), orderBy("createdAt", "desc"), limit(50))),
       ]);
 
-      // Product cost map
       const productCostMap: Record<string, number> = {};
       for (const doc of prodSnap.docs) {
         const d = doc.data();
@@ -136,12 +143,10 @@ export default function DashboardPage() {
         }
       }
 
-      // Load inventory from each warehouse subcollection
       const invSnaps = await Promise.all(
         whSnap.docs.map((w) => getDocs(collection(db, "companies", cid, "warehouses", w.id, "inventory")))
       );
 
-      // Aggregate stock items across warehouses
       const stockMap: Record<string, { name: string; qty: number; threshold: number; unitCost: number; unit: string }> = {};
       for (const snap of invSnaps) {
         for (const doc of snap.docs) {
@@ -233,15 +238,12 @@ export default function DashboardPage() {
 
     const overdueOrderCount = pendingPOs.filter((po) => po.expectedDate && po.expectedDate < new Date()).length;
 
-    // Period metrics (filtered by date range)
     const periodRequests = requests.filter((r) => r.timestamp >= startDate);
     const periodRequestCount = periodRequests.length;
 
-    // Active users in period: unique submitters from requests
     const activeUsersInPeriod = new Set(periodRequests.map((r) => r.submittedByUID).filter(Boolean)).size;
-    const activeUsers = Math.max(activeUsersInPeriod, 1) > 0 ? activeUsersInPeriod : 0;
+    const activeUsers = activeUsersInPeriod;
 
-    // Top employees by pulls in period
     const empCounts: Record<string, { name: string; count: number }> = {};
     for (const r of periodRequests) {
       if (!r.submittedByUID) continue;
@@ -256,22 +258,22 @@ export default function DashboardPage() {
     if (openIssues > 0) { healthLabel = "Needs Attention"; healthColor = "red"; }
     else if (atRiskItems.length > 0 || vehicleAttentionCount > 0) { healthLabel = "Watch List"; healthColor = "orange"; }
 
-    // Insights
-    const insights: string[] = [];
+    // Fallback computed insights (shown if AI is not configured or still loading)
+    const fallbackInsights: string[] = [];
     const dailyPulls = periodRequestCount / rangeDays;
     if (dailyPulls > 0) {
-      insights.push(`Team is averaging ${dailyPulls.toFixed(1)} supply requests/day over the last ${rangeDays} days.`);
+      fallbackInsights.push(`Team is averaging ${dailyPulls.toFixed(1)} supply requests/day over the last ${rangeDays} days.`);
     }
     if (atRiskItems.length > 0) {
       const listed = atRiskItems.slice(0, 3).map((i) => i.name).join(", ");
       const extra = atRiskItems.length > 3 ? ` +${atRiskItems.length - 3} more` : "";
-      insights.push(`${atRiskItems.length} item${atRiskItems.length !== 1 ? "s" : ""} at or below reorder threshold: ${listed}${extra}.`);
+      fallbackInsights.push(`${atRiskItems.length} item${atRiskItems.length !== 1 ? "s" : ""} at or below reorder threshold: ${listed}${extra}.`);
     }
     if (overdueOrderCount > 0) {
-      insights.push(`${overdueOrderCount} supply order${overdueOrderCount !== 1 ? "s are" : " is"} overdue — may be delaying restocks.`);
+      fallbackInsights.push(`${overdueOrderCount} supply order${overdueOrderCount !== 1 ? "s are" : " is"} overdue — may be delaying restocks.`);
     }
     if (topEmployees[0]) {
-      insights.push(`${topEmployees[0].name} led supply pulls this period with ${topEmployees[0].count} request${topEmployees[0].count !== 1 ? "s" : ""}.`);
+      fallbackInsights.push(`${topEmployees[0].name} led supply pulls this period with ${topEmployees[0].count} request${topEmployees[0].count !== 1 ? "s" : ""}.`);
     }
 
     return {
@@ -296,9 +298,117 @@ export default function DashboardPage() {
       totalEquipment: equipment.length,
       totalVehicles: vehicles.length,
       pendingPOCount: pendingPOs.length,
-      insights,
+      fallbackInsights,
     };
   }, [data, startDate, rangeDays]);
+
+  // ── AI Insights ───────────────────────────────────────────────────────────
+
+  const generateInsights = useCallback(async () => {
+    if (!metrics || !user?.companyID) return;
+
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) return;
+
+    insightsAbortRef.current?.abort();
+    const abort = new AbortController();
+    insightsAbortRef.current = abort;
+
+    setGeneratingInsights(true);
+    setAiInsights(null);
+    setAiNotConfigured(false);
+
+    const m = metrics;
+    const context = [
+      `Time period: last ${rangeDays} days`,
+      `Inventory: ${m.totalStockItems} total items, ${m.healthyStockCount} healthy, ${m.atRiskItems.length} at/below reorder threshold, ${m.outOfStockCount} out of stock`,
+      m.totalInventoryValue > 0 ? `Total inventory value: ${formatCurrency(m.totalInventoryValue)}` : null,
+      `Warehouses: ${m.warehouseCount}`,
+      `Active employees: ${m.activeEmployeeCount}`,
+      `Supply requests in period: ${m.periodRequestCount} (${m.activeUsers} unique users)`,
+      m.topEmployees.length > 0
+        ? `Top employees by pulls: ${m.topEmployees.slice(0, 3).map((e) => `${e.name} (${e.count})`).join(", ")}`
+        : null,
+      m.atRiskItems.length > 0
+        ? `Items needing reorder: ${m.atRiskItems.slice(0, 5).map((i) => `${i.name} (qty: ${i.qty}, threshold: ${i.threshold})`).join("; ")}`
+        : "No items at reorder threshold",
+      `Equipment: ${m.totalEquipment} total, ${m.checkedOutCount} assigned to techs, ${m.openRepairCount} in repair`,
+      `Fleet: ${m.totalVehicles} vehicles, ${m.activeVehicleCount} assigned, ${m.vehicleAttentionCount} need attention`,
+      `Purchase orders: ${m.pendingPOCount} pending, ${m.overdueOrderCount} overdue`,
+    ].filter(Boolean).join("\n");
+
+    try {
+      const res = await fetch(CLOUD_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({
+          companyID: user.companyID,
+          messages: [{ role: "user", content: `Here is the current business data snapshot:\n\n${context}\n\nPlease generate your insights.` }],
+          system: `You are invntori's AI insights engine for a pest control supply and operations business. The user has provided a live data snapshot. Generate exactly 4 to 6 specific, actionable business insights. Format each insight as a single line starting with • followed by the insight text. Do not include any introduction, headers, or closing remarks — only the bullet lines. Include a mix of: wins worth calling out, risks or inefficiencies to address, and operational patterns worth knowing. Reference specific numbers from the data. Keep each insight to one clear sentence.`,
+        }),
+        signal: abort.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        if (res.status === 403) setAiNotConfigured(true);
+        setGeneratingInsights(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") continue;
+          try {
+            const evt = JSON.parse(payload);
+            if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+              fullText += evt.delta.text ?? "";
+            }
+            // OpenAI-compatible fallback
+            if (evt.choices?.[0]?.delta?.content) {
+              fullText += evt.choices[0].delta.content;
+            }
+          } catch {
+            // malformed SSE chunk — skip
+          }
+        }
+      }
+
+      const parsed = fullText
+        .split("\n")
+        .map((l) => l.replace(/^[•\-\*]\s*/, "").replace(/^\d+[.)]\s*/, "").trim())
+        .filter((l) => l.length > 15);
+
+      setAiInsights(parsed.length > 0 ? parsed : null);
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        // AI not configured or error — fall through to fallback insights
+        setAiInsights(null);
+      }
+    } finally {
+      setGeneratingInsights(false);
+    }
+  }, [metrics, user?.companyID, rangeDays]);
+
+  // Auto-generate when fresh data loads; reset on new load
+  useEffect(() => {
+    if (data && data !== prevDataRef.current) {
+      prevDataRef.current = data;
+      generateInsights();
+    }
+  }, [data, generateInsights]);
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -316,9 +426,11 @@ export default function DashboardPage() {
   }
 
   const m = metrics;
+  const displayInsights = aiInsights ?? m.fallbackInsights;
+  const insightCount = generatingInsights ? 0 : displayInsights.length;
 
   return (
-    <div className="p-6 max-w-5xl space-y-5">
+    <div className="p-6 xl:p-8 w-full space-y-5">
 
       {/* Date Range Picker */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -355,23 +467,27 @@ export default function DashboardPage() {
           </div>
           <HealthBadge label={m.healthLabel} color={m.healthColor} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricTile
+            href="/inventory"
             label="Inventory Value"
             value={m.totalInventoryValue > 0 ? formatCurrency(m.totalInventoryValue) : "$0"}
             color="green"
           />
           <MetricTile
+            href="/employees"
             label="Active Staff"
             value={String(m.activeEmployeeCount)}
             color="blue"
           />
           <MetricTile
+            href="/inventory"
             label="Warehouses"
             value={String(m.warehouseCount)}
             color="teal"
           />
           <MetricTile
+            href={m.openIssues > 0 ? "/inventory" : undefined}
             label="Open Issues"
             value={String(m.openIssues)}
             color={m.openIssues > 0 ? "red" : "gray"}
@@ -394,7 +510,7 @@ export default function DashboardPage() {
           </svg>
           <span className="text-xs font-semibold text-gray-400 tracking-widest uppercase">Areas</span>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <AreaCard
             href="/inventory"
             title="Inventory"
@@ -448,28 +564,63 @@ export default function DashboardPage() {
 
       {/* Invntori Insights */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl overflow-hidden">
-        <button
-          onClick={() => setInsightsOpen((v) => !v)}
-          className="w-full flex items-center gap-2 px-5 py-4 hover:bg-white/[0.02] transition-colors"
-        >
-          <svg className="w-3.5 h-3.5 text-yellow-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
-          </svg>
-          <span className="text-xs font-semibold text-gray-400 tracking-widest uppercase">Invntori Insights</span>
-          {m.insights.length > 0 && (
-            <span className="ml-1 bg-[#35B2FF] text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{m.insights.length}</span>
-          )}
-          <svg
-            className={`w-3.5 h-3.5 text-gray-500 ml-auto transition-transform ${insightsOpen ? "rotate-180" : ""}`}
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        <div className="w-full flex items-center gap-2 px-5 py-4">
+          <button
+            onClick={() => setInsightsOpen((v) => !v)}
+            className="flex items-center gap-2 flex-1 min-w-0"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+            <svg className="w-3.5 h-3.5 text-yellow-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+            </svg>
+            <span className="text-xs font-semibold text-gray-400 tracking-widest uppercase">Invntori Insights</span>
+            {generatingInsights ? (
+              <span className="ml-1 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#35B2FF] animate-pulse" />
+                <span className="text-[10px] text-[#35B2FF] font-medium">Generating…</span>
+              </span>
+            ) : insightCount > 0 ? (
+              <span className="ml-1 bg-[#35B2FF] text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{insightCount}</span>
+            ) : null}
+            <svg
+              className={`w-3.5 h-3.5 text-gray-500 ml-auto transition-transform ${insightsOpen ? "rotate-180" : ""}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {/* Regenerate button */}
+          <button
+            onClick={() => generateInsights()}
+            disabled={generatingInsights}
+            title="Regenerate insights"
+            className="ml-2 p-1.5 rounded-lg text-gray-500 hover:text-[#35B2FF] hover:bg-[#35B2FF]/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+          >
+            <svg className={`w-3.5 h-3.5 ${generatingInsights ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
 
         {insightsOpen && (
           <div className="border-t border-[#2a2f3e]">
-            {m.insights.length === 0 ? (
+            {generatingInsights ? (
+              <div className="px-5 py-5 space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#35B2FF]/30 mt-2 shrink-0" />
+                    <div
+                      className="h-4 rounded bg-white/5 animate-pulse"
+                      style={{ width: `${65 + (i % 3) * 12}%` }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : aiNotConfigured ? (
+              <div className="px-5 py-4">
+                <p className="text-sm text-amber-400/80 mb-1">AI insights not configured</p>
+                <p className="text-xs text-gray-500">Enable AI in the iOS app under Settings → Company Settings → AI Integration, then refresh.</p>
+              </div>
+            ) : displayInsights.length === 0 ? (
               <p className="px-5 py-4 text-sm text-gray-500">
                 {!data || data.allStockItems.length === 0
                   ? "Refresh to load your supply data."
@@ -477,9 +628,17 @@ export default function DashboardPage() {
               </p>
             ) : (
               <div className="px-5 py-4 space-y-3">
-                {m.insights.map((insight, i) => (
+                {aiInsights && (
+                  <p className="text-[10px] text-[#35B2FF]/60 mb-3 flex items-center gap-1.5">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                    </svg>
+                    AI-generated · based on live data
+                  </p>
+                )}
+                {displayInsights.map((insight, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#35B2FF] mt-2 shrink-0" />
+                    <div className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${aiInsights ? "bg-yellow-400" : "bg-[#35B2FF]"}`} />
                     <p className="text-sm text-gray-300 leading-relaxed">{insight}</p>
                   </div>
                 ))}
@@ -489,7 +648,9 @@ export default function DashboardPage() {
               <svg className="w-3.5 h-3.5 text-[#35B2FF]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
               </svg>
-              <p className="text-xs text-gray-500">Ask a follow-up in the invntori chat</p>
+              <Link href="/chat" className="text-xs text-gray-500 hover:text-[#35B2FF] transition-colors">
+                Ask a follow-up in the invntori chat →
+              </Link>
             </div>
           </div>
         )}
@@ -512,7 +673,7 @@ function HealthBadge({ label, color }: { label: string; color: "green" | "orange
   );
 }
 
-function MetricTile({ label, value, color }: { label: string; value: string; color: string }) {
+function MetricTile({ label, value, color, href }: { label: string; value: string; color: string; href?: string }) {
   const textColor = {
     green: "text-green-400",
     blue: "text-[#35B2FF]",
@@ -520,12 +681,20 @@ function MetricTile({ label, value, color }: { label: string; value: string; col
     red: "text-red-400",
     gray: "text-gray-400",
   }[color] ?? "text-gray-400";
-  return (
-    <div className="bg-[#0f1117] rounded-xl p-4">
+  const inner = (
+    <>
       <p className={`text-lg font-bold ${textColor} leading-none mb-1 truncate`}>{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className="bg-[#0f1117] rounded-xl p-4 hover:border hover:border-[#35B2FF]/20 transition-colors block">
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="bg-[#0f1117] rounded-xl p-4">{inner}</div>;
 }
 
 function FocusTile({ href, label, value, color }: { href: string; label: string; value: number; color: string }) {

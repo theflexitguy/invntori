@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
@@ -39,6 +39,7 @@ export default function EquipmentPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
     if (!user?.companyID) return;
@@ -57,6 +58,16 @@ export default function EquipmentPage() {
 
     setEquipment(items.sort((a, b) => a.name.localeCompare(b.name)));
     setLoading(false);
+  }
+
+  async function addEquipment(name: string, category: string, serialNumber: string, notes: string) {
+    if (!user?.companyID) return;
+    const data: Record<string, unknown> = { name: name.trim(), category: category.trim(), status: "available", createdAt: Timestamp.now() };
+    if (serialNumber.trim()) data.serialNumber = serialNumber.trim();
+    if (notes.trim()) data.notes = notes.trim();
+    const docRef = await addDoc(collection(db, "companies", user.companyID, "equipment"), data);
+    setEquipment((prev) => [...prev, { id: docRef.id, ...(data as Omit<Equipment, "id">) }].sort((a, b) => a.name.localeCompare(b.name)));
+    setShowAdd(false);
   }
 
   const filtered = useMemo(() => {
@@ -83,10 +94,18 @@ export default function EquipmentPage() {
   }
 
   return (
-    <div className="p-8 max-w-6xl">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white">Equipment</h2>
-        <p className="text-gray-400 mt-1 text-sm">{filtered.length} items</p>
+    <div className="p-6 xl:p-8 w-full">
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Equipment</h2>
+          <p className="text-gray-400 mt-1 text-sm">{filtered.length} items</p>
+        </div>
+        {user?.isAdmin && (
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Add Equipment
+          </button>
+        )}
       </div>
 
       {/* Status filter tabs */}
@@ -152,6 +171,49 @@ export default function EquipmentPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {showAdd && <AddEquipmentModal onSave={addEquipment} onClose={() => setShowAdd(false)} />}
+    </div>
+  );
+}
+
+function AddEquipmentModal({ onSave, onClose }: { onSave: (name: string, category: string, serial: string, notes: string) => Promise<void>; onClose: () => void }) {
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [serial, setSerial] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+
+  async function handleSave() {
+    setSaving(true);
+    try { await onSave(name, category, serial, notes); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-white">Add Equipment</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="space-y-3 mb-5">
+          <div><label className="block text-xs text-gray-500 mb-1">Name *</label><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Backpack Sprayer" /></div>
+          <div><label className="block text-xs text-gray-500 mb-1">Category *</label><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Sprayer, Tool, Ladder" /></div>
+          <div><label className="block text-xs text-gray-500 mb-1">Serial Number</label><input value={serial} onChange={(e) => setSerial(e.target.value)} className={inputCls} placeholder="Optional" /></div>
+          <div><label className="block text-xs text-gray-500 mb-1">Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-16`} placeholder="Optional" /></div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+          <button onClick={handleSave} disabled={!name.trim() || !category.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
+            {saving ? "Saving…" : "Add Equipment"}
+          </button>
+        </div>
       </div>
     </div>
   );

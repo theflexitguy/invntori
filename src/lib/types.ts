@@ -198,6 +198,7 @@ export interface InventoryRequest {
   companyID?: string;
   completedAt?: Timestamp;
   completedBy?: string;
+  completedByName?: string;
   notes?: string;
 }
 

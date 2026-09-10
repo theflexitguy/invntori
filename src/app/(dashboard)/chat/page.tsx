@@ -373,8 +373,15 @@ export default function ChatPage() {
       });
 
       if (!res.ok) {
-        const err = await res.text();
-        setMessages((prev) => prev.map((m) => m.id === assistantID ? { ...m, text: `Error: ${err}` } : m));
+        let errMsg = "Something went wrong. Please try again.";
+        try {
+          const body = await res.json() as { error?: string };
+          if (body.error) errMsg = body.error;
+        } catch { /* ignore */ }
+        if (res.status === 403 && errMsg.toLowerCase().includes("not configured")) {
+          errMsg = "AI is not configured for your company. An admin can enable it in the iOS app under Settings → Company Settings → AI Integration.";
+        }
+        setMessages((prev) => prev.map((m) => m.id === assistantID ? { ...m, text: errMsg } : m));
         return;
       }
 
@@ -394,9 +401,16 @@ export default function ChatPage() {
           if (payload === "[DONE]") break;
           try {
             const json = JSON.parse(payload);
+            // Anthropic: content_block_delta
             if (json.type === "content_block_delta" && json.delta?.text) {
               setMessages((prev) =>
                 prev.map((m) => m.id === assistantID ? { ...m, text: m.text + json.delta.text } : m)
+              );
+            }
+            // OpenAI: choices[0].delta.content
+            if (json.choices?.[0]?.delta?.content) {
+              setMessages((prev) =>
+                prev.map((m) => m.id === assistantID ? { ...m, text: m.text + json.choices[0].delta.content } : m)
               );
             }
           } catch { /* ignore parse errors */ }
