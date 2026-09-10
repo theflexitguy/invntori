@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import Link from "next/link";
+import { DetailModal, type DetailPanel, type ModalData } from "./DetailModal";
 
 const CLOUD_FUNCTION_URL = "https://us-central1-premium-inventory-app.cloudfunctions.net/askInvntori";
 
@@ -64,6 +65,7 @@ interface DashboardData {
   requests: RequestEvent[];
   pendingPOs: PendingPO[];
   warehouseCount: number;
+  warehouses: { id: string; name: string; location?: string }[];
 }
 
 // ── Date helpers ───────────────────────────────────────────────────────────
@@ -114,6 +116,7 @@ export default function DashboardPage() {
   const [aiInsights, setAiInsights] = useState<string[] | null>(null);
   const [generatingInsights, setGeneratingInsights] = useState(false);
   const [aiNotConfigured, setAiNotConfigured] = useState(false);
+  const [detailPanel, setDetailPanel] = useState<DetailPanel | null>(null);
 
   const prevDataRef = useRef<DashboardData | null>(null);
   const insightsAbortRef = useRef<AbortController | null>(null);
@@ -209,7 +212,12 @@ export default function DashboardPage() {
         })
         .filter(Boolean) as PendingPO[];
 
-      setData({ allStockItems, equipment, vehicles, activeEmployeeCount, requests, pendingPOs, warehouseCount: whSnap.size });
+      const warehouses = whSnap.docs.map((d) => ({
+        id: d.id,
+        name: (d.data().name as string | undefined) ?? d.id,
+        location: d.data().location as string | undefined,
+      }));
+      setData({ allStockItems, equipment, vehicles, activeEmployeeCount, requests, pendingPOs, warehouseCount: whSnap.size, warehouses });
     } finally {
       setLoading(false);
     }
@@ -469,25 +477,25 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricTile
-            href="/inventory"
+            onClick={() => setDetailPanel("stock")}
             label="Inventory Value"
             value={m.totalInventoryValue > 0 ? formatCurrency(m.totalInventoryValue) : "$0"}
             color="green"
           />
           <MetricTile
-            href="/employees"
+            onClick={() => setDetailPanel("teamUsage")}
             label="Active Staff"
             value={String(m.activeEmployeeCount)}
             color="blue"
           />
           <MetricTile
-            href="/inventory"
+            onClick={() => setDetailPanel("warehouses")}
             label="Warehouses"
             value={String(m.warehouseCount)}
             color="teal"
           />
           <MetricTile
-            href={m.openIssues > 0 ? "/inventory" : undefined}
+            onClick={m.openIssues > 0 ? () => setDetailPanel("issues") : undefined}
             label="Open Issues"
             value={String(m.openIssues)}
             color={m.openIssues > 0 ? "red" : "gray"}
@@ -497,9 +505,9 @@ export default function DashboardPage() {
 
       {/* Focus Strip */}
       <div className="grid grid-cols-3 gap-3">
-        <FocusTile href="/inventory" label="Low Stock" value={m.atRiskItems.length} color={m.atRiskItems.length > 0 ? "orange" : "gray"} />
-        <FocusTile href="/equipment" label="Repairs" value={m.openRepairCount} color={m.openRepairCount > 0 ? "red" : "gray"} />
-        <FocusTile href="/orders" label="Orders" value={m.pendingPOCount} color={m.overdueOrderCount > 0 ? "red" : m.pendingPOCount > 0 ? "teal" : "gray"} />
+        <FocusTile onClick={() => setDetailPanel("stock")} label="Low Stock" value={m.atRiskItems.length} color={m.atRiskItems.length > 0 ? "orange" : "gray"} />
+        <FocusTile onClick={() => setDetailPanel("equipment")} label="Repairs" value={m.openRepairCount} color={m.openRepairCount > 0 ? "red" : "gray"} />
+        <FocusTile onClick={() => setDetailPanel("orders")} label="Orders" value={m.pendingPOCount} color={m.overdueOrderCount > 0 ? "red" : m.pendingPOCount > 0 ? "teal" : "gray"} />
       </div>
 
       {/* AREAS Grid */}
@@ -512,7 +520,7 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <AreaCard
-            href="/inventory"
+            onClick={() => setDetailPanel("stock")}
             title="Inventory"
             value={`${m.healthyStockCount}/${m.totalStockItems}`}
             subtitle={m.atRiskItems.length > 0 ? `${m.atRiskItems.length} need reorder` : "items stocked"}
@@ -520,7 +528,7 @@ export default function DashboardPage() {
             color={m.atRiskItems.length > 0 ? "orange" : "green"}
           />
           <AreaCard
-            href="/requests"
+            onClick={() => setDetailPanel("requests")}
             title="Activity"
             value={String(m.periodRequestCount)}
             subtitle={`${m.activeUsers} active user${m.activeUsers !== 1 ? "s" : ""}`}
@@ -528,7 +536,7 @@ export default function DashboardPage() {
             color="blue"
           />
           <AreaCard
-            href="/equipment"
+            onClick={() => setDetailPanel("equipment")}
             title="Equipment"
             value={String(m.totalEquipment)}
             subtitle={`${m.checkedOutCount} assigned, ${m.openRepairCount} repair`}
@@ -536,7 +544,7 @@ export default function DashboardPage() {
             color={m.openRepairCount > 0 ? "red" : "purple"}
           />
           <AreaCard
-            href="/fleet"
+            onClick={() => setDetailPanel("fleet")}
             title="Fleet"
             value={String(m.totalVehicles)}
             subtitle={`${m.activeVehicleCount} assigned, ${m.vehicleAttentionCount} watch`}
@@ -544,7 +552,7 @@ export default function DashboardPage() {
             color={m.vehicleAttentionCount > 0 ? "orange" : "teal"}
           />
           <AreaCard
-            href="/orders"
+            onClick={() => setDetailPanel("orders")}
             title="Orders"
             value={String(m.pendingPOCount)}
             subtitle={m.overdueOrderCount > 0 ? `${m.overdueOrderCount} overdue` : "awaiting delivery"}
@@ -552,7 +560,7 @@ export default function DashboardPage() {
             color={m.overdueOrderCount > 0 ? "red" : "green"}
           />
           <AreaCard
-            href="/employees"
+            onClick={() => setDetailPanel("teamUsage")}
             title="Team Usage"
             value={String(m.topEmployees.length)}
             subtitle={m.topEmployees[0] ? `top: ${m.topEmployees[0].name}` : "no pulls yet"}
@@ -561,6 +569,24 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* Detail Drill-Down Modal */}
+      {detailPanel && data && metrics && (
+        <DetailModal
+          panel={detailPanel}
+          data={{
+            allStockItems: data.allStockItems,
+            atRiskItems: metrics.atRiskItems,
+            equipment: data.equipment,
+            vehicles: data.vehicles,
+            requests: data.requests,
+            pendingPOs: data.pendingPOs,
+            warehouses: data.warehouses,
+            topEmployees: metrics.topEmployees,
+          } as ModalData}
+          onClose={() => setDetailPanel(null)}
+        />
+      )}
 
       {/* Invntori Insights */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl overflow-hidden">
@@ -673,7 +699,7 @@ function HealthBadge({ label, color }: { label: string; color: "green" | "orange
   );
 }
 
-function MetricTile({ label, value, color, href }: { label: string; value: string; color: string; href?: string }) {
+function MetricTile({ label, value, color, onClick }: { label: string; value: string; color: string; onClick?: () => void }) {
   const textColor = {
     green: "text-green-400",
     blue: "text-[#35B2FF]",
@@ -687,17 +713,17 @@ function MetricTile({ label, value, color, href }: { label: string; value: strin
       <p className="text-xs text-gray-500">{label}</p>
     </>
   );
-  if (href) {
+  if (onClick) {
     return (
-      <Link href={href} className="bg-[#0f1117] rounded-xl p-4 hover:border hover:border-[#35B2FF]/20 transition-colors block">
+      <button onClick={onClick} className="bg-[#0f1117] rounded-xl p-4 hover:border hover:border-[#35B2FF]/20 transition-colors block text-left w-full">
         {inner}
-      </Link>
+      </button>
     );
   }
   return <div className="bg-[#0f1117] rounded-xl p-4">{inner}</div>;
 }
 
-function FocusTile({ href, label, value, color }: { href: string; label: string; value: number; color: string }) {
+function FocusTile({ onClick, label, value, color }: { onClick: () => void; label: string; value: number; color: string }) {
   const textColor = {
     orange: "text-amber-400",
     red: "text-red-400",
@@ -705,17 +731,17 @@ function FocusTile({ href, label, value, color }: { href: string; label: string;
     gray: "text-gray-500",
   }[color] ?? "text-gray-500";
   return (
-    <Link href={href} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl py-4 flex flex-col items-center gap-1 hover:border-[#35B2FF]/40 transition-colors">
+    <button onClick={onClick} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl py-4 flex flex-col items-center gap-1 hover:border-[#35B2FF]/40 transition-colors w-full">
       <span className={`text-2xl font-bold ${textColor}`}>{value}</span>
       <span className="text-xs text-gray-500">{label}</span>
-    </Link>
+    </button>
   );
 }
 
 function AreaCard({
-  href, title, value, subtitle, icon, color,
+  onClick, title, value, subtitle, icon, color,
 }: {
-  href: string; title: string; value: string; subtitle: string; icon: React.ReactNode; color: string;
+  onClick: () => void; title: string; value: string; subtitle: string; icon: React.ReactNode; color: string;
 }) {
   const colorMap: Record<string, { icon: string; bg: string }> = {
     orange: { icon: "text-amber-400", bg: "bg-amber-400/10" },
@@ -730,7 +756,7 @@ function AreaCard({
   const { icon: iconCls, bg } = colorMap[color] ?? colorMap.gray;
 
   return (
-    <Link href={href} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-4 hover:border-[#35B2FF]/30 transition-colors group flex flex-col gap-3 min-h-[138px]">
+    <button onClick={onClick} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-4 hover:border-[#35B2FF]/30 transition-colors group flex flex-col gap-3 min-h-[138px] text-left w-full">
       <div className="flex items-center justify-between">
         <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center`}>
           <span className={`w-4 h-4 ${iconCls}`}>{icon}</span>
@@ -744,7 +770,7 @@ function AreaCard({
         <p className="text-sm font-medium text-gray-300">{title}</p>
         <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
       </div>
-    </Link>
+    </button>
   );
 }
 
