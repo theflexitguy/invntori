@@ -368,7 +368,7 @@ export default function ChatPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ messages: history, system: buildSystemPrompt(contextSummary) }),
+        body: JSON.stringify({ messages: history, system: buildSystemPrompt(contextSummary), companyID: user?.companyID }),
         signal: abort.signal,
       });
 
