@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  --brand: #35B2FF;
+  --brand-dark: #1a8fd1;
+  --sidebar-bg: #0f1117;
+  --sidebar-border: #1e2130;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
