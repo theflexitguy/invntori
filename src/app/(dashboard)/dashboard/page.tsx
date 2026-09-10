@@ -15,6 +15,7 @@ import {
   SparklesIcon, ChevronDownIcon, ChevronRightIcon,
 } from "@/components/layout/nav";
 import { IconBadge, Pill, TINTS, type Tint } from "@/components/ui/ios";
+import { DetailModal, type DetailPanel, type ModalData } from "./DetailModal";
 
 const CLOUD_FUNCTION_URL = "https://us-central1-premium-inventory-app.cloudfunctions.net/askInvntori";
 
@@ -70,6 +71,7 @@ interface DashboardData {
   requests: RequestEvent[];
   pendingPOs: PendingPO[];
   warehouseCount: number;
+  warehouses: { id: string; name: string; location?: string }[];
 }
 
 // ── Date helpers ───────────────────────────────────────────────────────────
@@ -120,6 +122,7 @@ export default function DashboardPage() {
   const [aiInsights, setAiInsights] = useState<string[] | null>(null);
   const [generatingInsights, setGeneratingInsights] = useState(false);
   const [aiNotConfigured, setAiNotConfigured] = useState(false);
+  const [detailPanel, setDetailPanel] = useState<DetailPanel | null>(null);
 
   const prevDataRef = useRef<DashboardData | null>(null);
   const insightsAbortRef = useRef<AbortController | null>(null);
@@ -215,7 +218,12 @@ export default function DashboardPage() {
         })
         .filter(Boolean) as PendingPO[];
 
-      setData({ allStockItems, equipment, vehicles, activeEmployeeCount, requests, pendingPOs, warehouseCount: whSnap.size });
+      const warehouses = whSnap.docs.map((d) => ({
+        id: d.id,
+        name: (d.data().name as string | undefined) ?? d.id,
+        location: d.data().location as string | undefined,
+      }));
+      setData({ allStockItems, equipment, vehicles, activeEmployeeCount, requests, pendingPOs, warehouseCount: whSnap.size, warehouses });
     } finally {
       setLoading(false);
     }
@@ -476,18 +484,18 @@ export default function DashboardPage() {
         </p>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 mt-4">
-          <MetricTile href="/inventory" label="Inventory Value" value={m.totalInventoryValue > 0 ? formatCurrency(m.totalInventoryValue) : "$0"} tint="green" />
-          <MetricTile href="/employees" label="Active Staff" value={String(m.activeEmployeeCount)} tint="blue" />
-          <MetricTile href="/inventory" label="Warehouses" value={String(m.warehouseCount)} tint="teal" />
-          <MetricTile href={m.openIssues > 0 ? "/inventory" : undefined} label="Open Issues" value={String(m.openIssues)} tint={m.openIssues > 0 ? "red" : "gray"} />
+          <MetricTile onClick={() => setDetailPanel("stock")} label="Inventory Value" value={m.totalInventoryValue > 0 ? formatCurrency(m.totalInventoryValue) : "$0"} tint="green" />
+          <MetricTile onClick={() => setDetailPanel("teamUsage")} label="Active Staff" value={String(m.activeEmployeeCount)} tint="blue" />
+          <MetricTile onClick={() => setDetailPanel("warehouses")} label="Warehouses" value={String(m.warehouseCount)} tint="teal" />
+          <MetricTile onClick={m.openIssues > 0 ? () => setDetailPanel("issues") : undefined} label="Open Issues" value={String(m.openIssues)} tint={m.openIssues > 0 ? "red" : "gray"} />
         </div>
       </div>
 
       {/* Focus strip */}
       <div className="grid grid-cols-3 gap-3">
-        <FocusTile href="/inventory" label="Low Stock" value={m.atRiskItems.length} tint={m.atRiskItems.length > 0 ? "orange" : "gray"} />
-        <FocusTile href="/equipment" label="Repairs" value={m.openRepairCount} tint={m.openRepairCount > 0 ? "red" : "gray"} />
-        <FocusTile href="/orders" label="Orders" value={m.pendingPOCount} tint={m.overdueOrderCount > 0 ? "red" : m.pendingPOCount > 0 ? "teal" : "gray"} />
+        <FocusTile onClick={() => setDetailPanel("stock")} label="Low Stock" value={m.atRiskItems.length} tint={m.atRiskItems.length > 0 ? "orange" : "gray"} />
+        <FocusTile onClick={() => setDetailPanel("equipment")} label="Repairs" value={m.openRepairCount} tint={m.openRepairCount > 0 ? "red" : "gray"} />
+        <FocusTile onClick={() => setDetailPanel("orders")} label="Orders" value={m.pendingPOCount} tint={m.overdueOrderCount > 0 ? "red" : m.pendingPOCount > 0 ? "teal" : "gray"} />
       </div>
 
       {/* Areas */}
@@ -500,7 +508,7 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           <AreaCard
-            href="/inventory"
+            onClick={() => setDetailPanel("stock")}
             title="Inventory"
             value={`${m.healthyStockCount}/${m.totalStockItems}`}
             subtitle={m.atRiskItems.length > 0 ? `${m.atRiskItems.length} need reorder` : "items stocked"}
@@ -508,7 +516,7 @@ export default function DashboardPage() {
             tint={m.atRiskItems.length > 0 ? "orange" : "green"}
           />
           <AreaCard
-            href="/requests"
+            onClick={() => setDetailPanel("requests")}
             title="Activity"
             value={String(m.periodRequestCount)}
             subtitle={`${m.activeUsers} active user${m.activeUsers !== 1 ? "s" : ""}`}
@@ -516,7 +524,7 @@ export default function DashboardPage() {
             tint="blue"
           />
           <AreaCard
-            href="/equipment"
+            onClick={() => setDetailPanel("equipment")}
             title="Equipment"
             value={String(m.totalEquipment)}
             subtitle={`${m.checkedOutCount} assigned, ${m.openRepairCount} repair`}
@@ -524,7 +532,7 @@ export default function DashboardPage() {
             tint={m.openRepairCount > 0 ? "red" : "purple"}
           />
           <AreaCard
-            href="/fleet"
+            onClick={() => setDetailPanel("fleet")}
             title="Fleet"
             value={String(m.totalVehicles)}
             subtitle={`${m.activeVehicleCount} assigned, ${m.vehicleAttentionCount} watch`}
@@ -532,7 +540,7 @@ export default function DashboardPage() {
             tint={m.vehicleAttentionCount > 0 ? "orange" : "teal"}
           />
           <AreaCard
-            href="/orders"
+            onClick={() => setDetailPanel("orders")}
             title="Orders"
             value={String(m.pendingPOCount)}
             subtitle={m.overdueOrderCount > 0 ? `${m.overdueOrderCount} overdue` : "awaiting delivery"}
@@ -540,7 +548,7 @@ export default function DashboardPage() {
             tint={m.overdueOrderCount > 0 ? "red" : "green"}
           />
           <AreaCard
-            href="/employees"
+            onClick={() => setDetailPanel("teamUsage")}
             title="Team Usage"
             value={String(m.topEmployees.length)}
             subtitle={m.topEmployees[0] ? `top: ${m.topEmployees[0].name}` : "no pulls yet"}
@@ -549,6 +557,24 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* Detail Drill-Down Modal */}
+      {detailPanel && data && metrics && (
+        <DetailModal
+          panel={detailPanel}
+          data={{
+            allStockItems: data.allStockItems,
+            atRiskItems: metrics.atRiskItems,
+            equipment: data.equipment,
+            vehicles: data.vehicles,
+            requests: data.requests,
+            pendingPOs: data.pendingPOs,
+            warehouses: data.warehouses,
+            topEmployees: metrics.topEmployees,
+          } as ModalData}
+          onClose={() => setDetailPanel(null)}
+        />
+      )}
 
       {/* Invntori Insights */}
       <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden">
@@ -647,45 +673,45 @@ function HealthBadge({ label, color }: { label: string; color: "green" | "orange
   );
 }
 
-function MetricTile({ label, value, tint, href }: { label: string; value: string; tint: Tint; href?: string }) {
+function MetricTile({ label, value, tint, onClick }: { label: string; value: string; tint: Tint; onClick?: () => void }) {
   const inner = (
     <>
       <p className={`text-[22px] font-bold leading-none tracking-tight tabular-nums ${TINTS[tint].text}`}>{value}</p>
       <p className="text-[15px] text-[rgba(235,235,245,0.6)] mt-1.5">{label}</p>
     </>
   );
-  if (href) {
+  if (onClick) {
     return (
-      <Link href={href} className="block min-w-0 active:opacity-60 transition-opacity">
+      <button onClick={onClick} className="block w-full min-w-0 text-left active:opacity-60 transition-opacity">
         {inner}
-      </Link>
+      </button>
     );
   }
   return <div className="min-w-0">{inner}</div>;
 }
 
-function FocusTile({ href, label, value, tint }: { href: string; label: string; value: number; tint: Tint }) {
+function FocusTile({ onClick, label, value, tint }: { onClick: () => void; label: string; value: number; tint: Tint }) {
   return (
-    <Link
-      href={href}
-      className="bg-[#1C1C1E] rounded-[14px] py-4 flex flex-col items-center gap-1 active:bg-[#2C2C2E] transition-colors"
+    <button
+      onClick={onClick}
+      className="w-full bg-[#1C1C1E] rounded-[14px] py-4 flex flex-col items-center gap-1 active:bg-[#2C2C2E] transition-colors"
     >
       <span className={`text-[26px] font-bold leading-none ${TINTS[tint].text}`}>{value}</span>
       <span className="text-[13px] text-[rgba(235,235,245,0.6)]">{label}</span>
-    </Link>
+    </button>
   );
 }
 
 function AreaCard({
-  href, title, value, subtitle, Icon, tint,
+  onClick, title, value, subtitle, Icon, tint,
 }: {
-  href: string; title: string; value: string; subtitle: string;
+  onClick: () => void; title: string; value: string; subtitle: string;
   Icon: ComponentType<{ className?: string }>; tint: Tint;
 }) {
   return (
-    <Link
-      href={href}
-      className="bg-[#1C1C1E] rounded-[18px] p-4 active:bg-[#2C2C2E] transition-colors flex flex-col gap-4 min-h-[132px]"
+    <button
+      onClick={onClick}
+      className="w-full text-left bg-[#1C1C1E] rounded-[18px] p-4 active:bg-[#2C2C2E] transition-colors flex flex-col gap-4 min-h-[132px]"
     >
       <div className="flex items-center justify-between">
         <IconBadge Icon={Icon} tint={tint} />
@@ -696,6 +722,6 @@ function AreaCard({
         <p className="text-[17px] font-medium text-white mt-1.5 leading-tight">{title}</p>
         <p className="text-[13px] text-[rgba(235,235,245,0.6)] mt-0.5 truncate">{subtitle}</p>
       </div>
-    </Link>
+    </button>
   );
 }
