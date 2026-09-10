@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { doc, getDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
@@ -25,17 +25,27 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.companyID) return;
     load();
   }, [user]);
 
   async function load() {
-    if (!user) return;
+    if (!user?.companyID) return;
     const cid = user.companyID;
+
+    // Equipment doc + flat checkout/repair collections filtered by equipmentID
     const [eqDoc, checkSnap, repairSnap] = await Promise.all([
-      getDoc(doc(db, "companies", cid, "Equipment", id)),
-      getDocs(query(collection(db, "companies", cid, "Equipment", id, "Checkouts"), orderBy("checkedOutAt", "desc"))),
-      getDocs(query(collection(db, "companies", cid, "Equipment", id, "Repairs"), orderBy("reportedAt", "desc"))),
+      getDoc(doc(db, "companies", cid, "equipment", id)),
+      getDocs(query(
+        collection(db, "companies", cid, "equipmentCheckouts"),
+        where("equipmentID", "==", id),
+        orderBy("checkedOutAt", "desc")
+      )),
+      getDocs(query(
+        collection(db, "companies", cid, "equipmentRepairs"),
+        where("equipmentID", "==", id),
+        orderBy("reportedAt", "desc")
+      )),
     ]);
 
     if (eqDoc.exists()) {
@@ -55,9 +65,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   }
 
   if (!equipment) {
-    return (
-      <div className="p-8 text-center text-gray-500">Equipment not found.</div>
-    );
+    return <div className="p-8 text-center text-gray-500">Equipment not found.</div>;
   }
 
   return (
@@ -69,18 +77,13 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           </svg>
           Equipment
         </Link>
-        <div className="flex items-start gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white">{equipment.name}</h2>
-            <div className="flex items-center gap-3 mt-2">
-              <Badge variant={statusVariant[equipment.status] ?? "gray"}>{equipment.status}</Badge>
-              {equipment.category && <span className="text-sm text-gray-400">{equipment.category}</span>}
-            </div>
-          </div>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-white">{equipment.name}</h2>
+          <Badge variant={statusVariant[equipment.status] ?? "gray"}>{equipment.status}</Badge>
         </div>
+        {equipment.category && <p className="text-gray-400 mt-1 text-sm">{equipment.category}</p>}
       </div>
 
-      {/* Info */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-6 mb-6">
         <h3 className="text-sm font-semibold text-white mb-4">Details</h3>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
@@ -90,7 +93,6 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
         </dl>
       </div>
 
-      {/* Checkout history */}
       <Section title="Checkout History" count={checkouts.length}>
         {checkouts.length === 0 ? (
           <p className="text-gray-500 text-sm px-6 py-4">No checkout history</p>
@@ -108,7 +110,6 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
         )}
       </Section>
 
-      {/* Repair history */}
       <Section title="Repair History" count={repairs.length}>
         {repairs.length === 0 ? (
           <p className="text-gray-500 text-sm px-6 py-4">No repair history</p>

@@ -24,13 +24,13 @@ export default function EquipmentPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.companyID) return;
     load();
   }, [user]);
 
   async function load() {
-    if (!user) return;
-    const snap = await getDocs(collection(db, "companies", user.companyID, "Equipment"));
+    if (!user?.companyID) return;
+    const snap = await getDocs(collection(db, "companies", user.companyID, "equipment"));
     setEquipment(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Equipment, "id">) })));
     setLoading(false);
   }
@@ -53,11 +53,9 @@ export default function EquipmentPage() {
 
   return (
     <div className="p-8 max-w-6xl">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Equipment</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} items</p>
-        </div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-white">Equipment</h2>
+        <p className="text-gray-400 mt-1 text-sm">{filtered.length} items</p>
       </div>
 
       <div className="flex gap-3 mb-6 flex-wrap items-center">
@@ -76,9 +74,6 @@ export default function EquipmentPage() {
               : "bg-transparent border-[#2a2f3e] text-gray-500 hover:text-gray-300"
           }`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2L19 8" />
-          </svg>
           {showRetired ? "Hiding retired" : "Show retired"}
         </button>
       </div>

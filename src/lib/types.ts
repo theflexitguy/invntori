@@ -4,11 +4,12 @@ import type { Timestamp } from "firebase/firestore";
 export interface FirestoreInventoryItem {
   id?: string;
   name: string;
-  category: string;
+  category?: string;
   quantity: number;
-  unit: string;
-  reorderThreshold: number;
-  warehouseID: string;
+  unit?: string;
+  reorderThreshold?: number;
+  warehouseID?: string;
+  productID?: string;
   details?: Record<string, string>;
   fieldroutesChemicalID?: number;
   isRetired?: boolean;
@@ -17,8 +18,17 @@ export interface FirestoreInventoryItem {
 export interface Warehouse {
   id?: string;
   name: string;
-  location: string;
+  location?: string;
   officeID?: string;
+}
+
+export interface Product {
+  id?: string;
+  name: string;
+  unit?: string;
+  category?: string;
+  reorderThreshold?: number;
+  isRetired?: boolean;
 }
 
 // ── Company ────────────────────────────────────────────────────────────────
@@ -36,31 +46,20 @@ export interface Company {
 }
 
 // ── Employees ──────────────────────────────────────────────────────────────
-export type InviteStatus = "pending" | "accepted" | "declined";
-
 export interface Employee {
   id?: string;
   name: string;
-  email: string;
-  role: string;
+  email?: string;
+  role?: string;
   isAdmin?: boolean;
   isManager?: boolean;
   isActive?: boolean;
   companyID?: string;
+  warehouseID?: string;
   officeIDs?: string[];
-  inviteStatus?: InviteStatus;
   fcmToken?: string;
   createdAt?: Timestamp;
   managePermissions?: string[];
-  notificationPreferences?: {
-    lowStock?: boolean;
-    reorderReminders?: boolean;
-    purchaseOrders?: boolean;
-    inventoryRequests?: boolean;
-    repairRequests?: boolean;
-    repairUpdates?: boolean;
-    assetAssignments?: boolean;
-  };
 }
 
 // ── Equipment ──────────────────────────────────────────────────────────────
@@ -70,7 +69,7 @@ export type RepairStatus = "reported" | "approved" | "rejected" | "inProgress" |
 export interface Equipment {
   id?: string;
   name: string;
-  category: string;
+  category?: string;
   serialNumber?: string;
   status: EquipmentStatus;
   notes?: string;
@@ -79,6 +78,7 @@ export interface Equipment {
   currentCheckedOutAt?: Timestamp;
   customFields?: Record<string, string>;
   createdAt?: Timestamp;
+  isRetired?: boolean;
 }
 
 export interface EquipmentCheckout {
@@ -102,23 +102,24 @@ export interface EquipmentRepair {
   status: RepairStatus;
   reportedAt: Timestamp;
   resolvedAt?: Timestamp;
+  reviewedAt?: Timestamp;
+  reviewedByName?: string;
   responseNote?: string;
 }
 
 // ── Fleet ──────────────────────────────────────────────────────────────────
 export type VehicleCondition = "excellent" | "good" | "fair" | "poor";
-export type MaintenanceType = "oilChange" | "tireRotation" | "inspection" | "brakes" | "transmission" | "other";
 
 export interface Vehicle {
   id?: string;
   name: string;
-  make: string;
-  model: string;
-  year: number;
+  make?: string;
+  model?: string;
+  year?: number;
   vin?: string;
   licensePlate?: string;
   color?: string;
-  condition: VehicleCondition;
+  condition?: VehicleCondition;
   currentDriverUID?: string;
   currentDriverName?: string;
   currentAssignedAt?: Timestamp;
@@ -143,8 +144,8 @@ export interface VehicleMaintenance {
   id?: string;
   vehicleID: string;
   vehicleName: string;
-  type: MaintenanceType;
-  description: string;
+  type: string;
+  description?: string;
   performedAt: Timestamp;
   mileage?: number;
   cost?: number;
@@ -171,34 +172,32 @@ export interface PurchaseOrder {
   createdByUID?: string;
   createdByName?: string;
   createdAt?: Timestamp;
-  submittedAt?: Timestamp;
-  approvedAt?: Timestamp;
-  receivedAt?: Timestamp;
   notes?: string;
   totalCost?: number;
 }
 
 // ── Inventory Requests ─────────────────────────────────────────────────────
-export type RequestStatus = "pending" | "approved" | "denied" | "fulfilled";
+export type RequestStatus = "pending" | "approved" | "denied" | "fulfilled" | "completed";
 
 export interface RequestedItem {
-  name: string;
+  productID?: string;
+  productName: string;
   quantity: number;
-  unit: string;
-  notes?: string;
+  unit?: string;
+  warehouseID?: string;
 }
 
 export interface InventoryRequest {
   id?: string;
-  requestedByUID: string;
-  requestedByName: string;
-  items: RequestedItem[];
+  submittedBy: string;
+  submittedByUID: string;
   status: RequestStatus;
+  timestamp?: Timestamp;
+  items: RequestedItem[];
   warehouseID?: string;
-  warehouseName?: string;
-  createdAt?: Timestamp;
-  reviewedAt?: Timestamp;
-  reviewedByName?: string;
+  companyID?: string;
+  completedAt?: Timestamp;
+  completedBy?: string;
   notes?: string;
 }
 

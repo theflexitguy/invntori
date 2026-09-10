@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import type { InventoryRequest } from "@/lib/types";
 
-const TAB_STATUS = ["all", "pending", "approved", "denied", "fulfilled"] as const;
+const TAB_STATUS = ["all", "pending", "approved", "denied", "completed"] as const;
 type Tab = (typeof TAB_STATUS)[number];
 
 export default function RequestsPage() {
@@ -18,24 +18,24 @@ export default function RequestsPage() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.companyID) return;
     load();
   }, [user]);
 
   async function load() {
-    if (!user) return;
+    if (!user?.companyID) return;
     const snap = await getDocs(
-      query(collection(db, "companies", user.companyID, "InventoryRequests"), orderBy("createdAt", "desc"))
+      query(collection(db, "companies", user.companyID, "inventoryRequests"), orderBy("timestamp", "desc"))
     );
     setRequests(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<InventoryRequest, "id">) })));
     setLoading(false);
   }
 
   async function updateStatus(id: string, status: string) {
-    if (!user) return;
+    if (!user?.companyID) return;
     setUpdating(id);
     try {
-      await updateDoc(doc(db, "companies", user.companyID, "InventoryRequests", id), { status });
+      await updateDoc(doc(db, "companies", user.companyID, "inventoryRequests", id), { status });
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: status as InventoryRequest["status"] } : r)));
     } finally {
       setUpdating(null);
@@ -62,7 +62,6 @@ export default function RequestsPage() {
         <p className="text-gray-400 mt-1 text-sm">{filtered.length} requests</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg p-1 w-fit">
         {TAB_STATUS.map((t) => (
           <button
@@ -77,7 +76,6 @@ export default function RequestsPage() {
         ))}
       </div>
 
-      {/* List */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
           <div className="text-center text-gray-500 py-10">No {tab === "all" ? "" : tab} requests</div>
@@ -89,20 +87,19 @@ export default function RequestsPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <p className="font-semibold text-white">
                       {r.items?.length === 1
-                        ? r.items[0].name
+                        ? r.items[0].productName
                         : `${r.items?.length ?? 0} items`}
                     </p>
                     <StatusPill status={r.status} />
                   </div>
                   <p className="text-sm text-gray-400 mt-1">
-                    Requested by <span className="text-gray-300">{r.requestedByName}</span>
-                    {r.warehouseName ? ` · ${r.warehouseName}` : ""}
+                    Requested by <span className="text-gray-300">{r.submittedBy}</span>
                   </p>
                   {r.items && r.items.length > 1 && (
                     <ul className="mt-2 space-y-0.5">
                       {r.items.map((item, i) => (
                         <li key={i} className="text-xs text-gray-500">
-                          {item.name} × {item.quantity} {item.unit}
+                          {item.productName} × {item.quantity} {item.unit ?? ""}
                         </li>
                       ))}
                     </ul>
@@ -110,7 +107,6 @@ export default function RequestsPage() {
                   {r.notes && <p className="text-sm text-gray-500 mt-1">{r.notes}</p>}
                 </div>
 
-                {/* Admin actions for pending */}
                 {user?.isAdmin && r.status === "pending" && (
                   <div className="flex gap-2 shrink-0">
                     <button
@@ -130,14 +126,13 @@ export default function RequestsPage() {
                   </div>
                 )}
 
-                {/* Mark fulfilled for approved */}
                 {user?.isAdmin && r.status === "approved" && (
                   <button
-                    onClick={() => updateStatus(r.id!, "fulfilled")}
+                    onClick={() => updateStatus(r.id!, "completed")}
                     disabled={updating === r.id}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20 hover:bg-blue-500/25 transition-colors disabled:opacity-50 shrink-0"
                   >
-                    Mark Fulfilled
+                    Mark Complete
                   </button>
                 )}
               </div>
@@ -154,7 +149,7 @@ function StatusPill({ status }: { status: string }) {
     pending: "bg-amber-400/15 text-amber-400",
     approved: "bg-green-400/15 text-green-400",
     denied: "bg-red-400/15 text-red-400",
-    fulfilled: "bg-blue-400/15 text-blue-400",
+    completed: "bg-blue-400/15 text-blue-400",
   };
   return (
     <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${map[status] ?? "bg-gray-400/15 text-gray-400"}`}>

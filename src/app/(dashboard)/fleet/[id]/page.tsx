@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { doc, getDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
@@ -18,17 +18,27 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.companyID) return;
     load();
   }, [user]);
 
   async function load() {
-    if (!user) return;
+    if (!user?.companyID) return;
     const cid = user.companyID;
+
+    // Vehicle doc + flat collections filtered by vehicleID
     const [vDoc, aSnap, mSnap] = await Promise.all([
-      getDoc(doc(db, "companies", cid, "Vehicles", id)),
-      getDocs(query(collection(db, "companies", cid, "Vehicles", id, "Assignments"), orderBy("assignedAt", "desc"))),
-      getDocs(query(collection(db, "companies", cid, "Vehicles", id, "Maintenance"), orderBy("performedAt", "desc"))),
+      getDoc(doc(db, "companies", cid, "vehicles", id)),
+      getDocs(query(
+        collection(db, "companies", cid, "vehicleAssignments"),
+        where("vehicleID", "==", id),
+        orderBy("assignedAt", "desc")
+      )),
+      getDocs(query(
+        collection(db, "companies", cid, "vehicleMaintenance"),
+        where("vehicleID", "==", id),
+        orderBy("performedAt", "desc")
+      )),
     ]);
 
     if (vDoc.exists()) {
@@ -78,7 +88,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      {/* Info */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-6 mb-6">
         <h3 className="text-sm font-semibold text-white mb-4">Vehicle Info</h3>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
@@ -91,7 +100,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         </dl>
       </div>
 
-      {/* Driver History */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden mb-6">
         <div className="px-6 py-4 border-b border-[#2a2f3e]">
           <h3 className="text-sm font-semibold text-white">Driver History <span className="text-gray-500 font-normal">({assignments.length})</span></h3>
@@ -112,7 +120,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      {/* Maintenance */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-[#2a2f3e]">
           <h3 className="text-sm font-semibold text-white">Maintenance <span className="text-gray-500 font-normal">({maintenance.length})</span></h3>
@@ -124,7 +131,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             <div key={m.id} className="px-6 py-3.5 border-t border-[#2a2f3e] first:border-0 text-sm">
               <p className="text-white font-medium">{m.type}</p>
               {m.description && <p className="text-gray-400 text-xs mt-0.5">{m.description}</p>}
-              {m.notes && <p className="text-gray-500 text-xs mt-0.5">{m.notes}</p>}
               <p className="text-gray-500 text-xs mt-0.5">{formatDate(m.performedAt)}</p>
             </div>
           ))
@@ -134,7 +140,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   );
 }
 
-function InfoRow({ label, value, span }: { label: string; value?: string | null; span?: boolean }) {
+function InfoRow({ label, value, span }: { label: string; value?: string | number | null; span?: boolean }) {
   return (
     <div className={span ? "col-span-2" : ""}>
       <dt className="text-xs text-gray-500 mb-0.5">{label}</dt>

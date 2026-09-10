@@ -7,28 +7,51 @@ import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import type { FirestoreInventoryItem, Warehouse } from "@/lib/types";
 
+interface ItemWithWarehouse extends FirestoreInventoryItem {
+  warehouseName?: string;
+}
+
 export default function InventoryPage() {
   const { user } = useAuth();
-  const [items, setItems] = useState<FirestoreInventoryItem[]>([]);
+  const [items, setItems] = useState<ItemWithWarehouse[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.companyID) return;
     load();
   }, [user]);
 
   async function load() {
-    if (!user) return;
+    if (!user?.companyID) return;
     const cid = user.companyID;
-    const [invSnap, whSnap] = await Promise.all([
-      getDocs(collection(db, "companies", cid, "Inventory")),
-      getDocs(collection(db, "companies", cid, "Warehouses")),
-    ]);
-    setItems(invSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<FirestoreInventoryItem, "id">) })));
-    setWarehouses(whSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Warehouse, "id">) })));
+
+    // Load all warehouses first
+    const whSnap = await getDocs(collection(db, "companies", cid, "warehouses"));
+    const whs: Warehouse[] = whSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Warehouse, "id">) }));
+    setWarehouses(whs);
+
+    // Inventory is nested under each warehouse
+    const allItems: ItemWithWarehouse[] = [];
+    await Promise.all(
+      whs.map(async (wh) => {
+        const invSnap = await getDocs(
+          collection(db, "companies", cid, "warehouses", wh.id!, "inventory")
+        );
+        invSnap.docs.forEach((d) => {
+          allItems.push({
+            id: d.id,
+            warehouseID: wh.id,
+            warehouseName: wh.name,
+            ...(d.data() as Omit<FirestoreInventoryItem, "id" | "warehouseID">),
+          });
+        });
+      })
+    );
+
+    setItems(allItems);
     setLoading(false);
   }
 
@@ -37,7 +60,7 @@ export default function InventoryPage() {
       const matchWarehouse = selectedWarehouse === "all" || item.warehouseID === selectedWarehouse;
       const matchSearch =
         !search ||
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.name?.toLowerCase().includes(search.toLowerCase()) ||
         item.category?.toLowerCase().includes(search.toLowerCase());
       return matchWarehouse && matchSearch;
     });
@@ -56,11 +79,10 @@ export default function InventoryPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white">Inventory</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} items</p>
+          <p className="text-gray-400 mt-1 text-sm">{filtered.length} items across {warehouses.length} warehouses</p>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <input
           type="search"
@@ -81,7 +103,6 @@ export default function InventoryPage() {
         </select>
       </div>
 
-      {/* Table */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -100,21 +121,20 @@ export default function InventoryPage() {
               </tr>
             ) : (
               filtered.map((item) => {
-                const wh = warehouses.find((w) => w.id === item.warehouseID);
-                const low = item.quantity <= (item.reorderThreshold ?? 0);
+                const low = (item.quantity ?? 0) <= (item.reorderThreshold ?? 0) && (item.reorderThreshold ?? 0) > 0;
                 return (
-                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={`${item.warehouseID}-${item.id}`} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-6 py-3.5">
                       <p className="font-medium text-white">{item.name}</p>
                     </td>
                     <td className="px-6 py-3.5 text-gray-400">{item.category ?? "—"}</td>
                     <td className="px-6 py-3.5 text-right">
                       <span className={low ? "text-red-400 font-semibold" : "text-white"}>
-                        {item.quantity}
+                        {item.quantity ?? 0}
                       </span>
                     </td>
                     <td className="px-6 py-3.5 text-right text-gray-400">{item.unit ?? "—"}</td>
-                    <td className="px-6 py-3.5 text-gray-400">{wh?.name ?? item.warehouseID ?? "—"}</td>
+                    <td className="px-6 py-3.5 text-gray-400">{item.warehouseName ?? "—"}</td>
                   </tr>
                 );
               })

@@ -5,7 +5,7 @@ import { collection, getDocs, query, where, orderBy, limit } from "firebase/fire
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import type { FirestoreInventoryItem, Equipment, Vehicle, InventoryRequest } from "@/lib/types";
+import type { InventoryRequest, Warehouse } from "@/lib/types";
 
 interface Stats {
   inventoryCount: number;
@@ -21,38 +21,46 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.companyID) return;
     loadDashboard();
   }, [user]);
 
   async function loadDashboard() {
-    if (!user) return;
+    if (!user?.companyID) return;
     const cid = user.companyID;
 
     try {
-      const [invSnap, eqSnap, vSnap, reqSnap, pendingSnap] = await Promise.all([
-        getDocs(collection(db, "companies", cid, "Inventory")),
-        getDocs(collection(db, "companies", cid, "Equipment")),
-        getDocs(collection(db, "companies", cid, "Vehicles")),
+      // Load warehouses to count inventory items across all
+      const [whSnap, eqSnap, vSnap, reqSnap, pendingSnap] = await Promise.all([
+        getDocs(collection(db, "companies", cid, "warehouses")),
+        getDocs(collection(db, "companies", cid, "equipment")),
+        getDocs(collection(db, "companies", cid, "vehicles")),
         getDocs(
           query(
-            collection(db, "companies", cid, "InventoryRequests"),
-            orderBy("createdAt", "desc"),
+            collection(db, "companies", cid, "inventoryRequests"),
+            orderBy("timestamp", "desc"),
             limit(5)
           )
         ),
         getDocs(
           query(
-            collection(db, "companies", cid, "InventoryRequests"),
+            collection(db, "companies", cid, "inventoryRequests"),
             where("status", "==", "pending")
           )
         ),
       ]);
 
+      // Count inventory across all warehouses
+      const whs = whSnap.docs as typeof whSnap.docs;
+      const invCounts = await Promise.all(
+        whs.map((w) => getDocs(collection(db, "companies", cid, "warehouses", w.id, "inventory")))
+      );
+      const totalInventory = invCounts.reduce((sum, snap) => sum + snap.size, 0);
+
       setStats({
-        inventoryCount: invSnap.size,
-        equipmentCount: eqSnap.docs.filter((d) => (d.data() as Equipment).status !== "retired").length,
-        vehicleCount: vSnap.docs.filter((d) => !(d.data() as Vehicle).isRetired).length,
+        inventoryCount: totalInventory,
+        equipmentCount: eqSnap.docs.filter((d) => d.data().status !== "retired").length,
+        vehicleCount: vSnap.docs.filter((d) => !d.data().isRetired).length,
         pendingRequests: pendingSnap.size,
       });
 
@@ -86,7 +94,6 @@ export default function DashboardPage() {
         <p className="text-gray-400 mt-1 text-sm">Overview of your company resources</p>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {cards.map((c) => (
           <a
@@ -102,7 +109,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Recent requests */}
       <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-[#2a2f3e] flex items-center justify-between">
           <h3 className="text-sm font-semibold text-white">Recent Requests</h3>
@@ -116,9 +122,9 @@ export default function DashboardPage() {
               <div key={r.id} className="px-6 py-3.5 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-white font-medium">
-                    {r.items?.length === 1 ? r.items[0].name : `${r.items?.length ?? 0} items`}
+                    {r.items?.length === 1 ? r.items[0].productName : `${r.items?.length ?? 0} items`}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">{r.requestedByName}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{r.submittedBy}</p>
                 </div>
                 <StatusPill status={r.status} />
               </div>
@@ -135,7 +141,7 @@ function StatusPill({ status }: { status: string }) {
     pending: "bg-amber-400/15 text-amber-400",
     approved: "bg-green-400/15 text-green-400",
     denied: "bg-red-400/15 text-red-400",
-    fulfilled: "bg-blue-400/15 text-blue-400",
+    completed: "bg-blue-400/15 text-blue-400",
   };
   return (
     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${map[status] ?? "bg-gray-400/15 text-gray-400"}`}>
