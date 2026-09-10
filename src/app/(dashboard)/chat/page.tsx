@@ -2,8 +2,12 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+
+const CLOUD_FUNCTION_URL =
+  "https://us-central1-premium-inventory-app.cloudfunctions.net/askInvntori";
 
 // ── Rate limiting (client-side, 20/hr) ─────────────────────────────────────
 
@@ -350,9 +354,20 @@ export default function ChatPage() {
     abortRef.current = abort;
 
     try {
-      const res = await fetch("/api/chat", {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        setMessages((prev) => prev.map((m) => m.id === assistantID ? { ...m, text: "Authentication error. Please sign in again." } : m));
+        setStreaming(false);
+        return;
+      }
+
+      const res = await fetch(CLOUD_FUNCTION_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({ messages: history, system: buildSystemPrompt(contextSummary) }),
         signal: abort.signal,
       });
