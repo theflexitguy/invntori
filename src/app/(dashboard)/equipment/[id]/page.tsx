@@ -33,6 +33,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   const [showReport, setShowReport] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showRetire, setShowRetire] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
 
   const load = useCallback(async () => {
     if (!user?.companyID) return;
@@ -162,6 +163,17 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
     finally { setActing(false); }
   }
 
+  async function saveCustomFields(fields: Record<string, string>) {
+    if (!user?.companyID || !equipment?.id) return;
+    setActing(true); setError(null);
+    try {
+      await updateDoc(doc(db, "companies", user.companyID, "equipment", equipment.id!), { customFields: fields });
+      setEquipment((prev) => prev ? { ...prev, customFields: fields } : prev);
+      setShowCustomFields(false);
+    } catch { setError("Failed to save custom fields."); }
+    finally { setActing(false); }
+  }
+
   async function editEquipment(name: string, category: string, serialNumber: string, notes: string) {
     if (!user?.companyID || !equipment?.id) return;
     setActing(true); setError(null);
@@ -215,6 +227,27 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
           <InfoRow label="Notes" value={equipment.notes} span />
         </dl>
       </div>
+
+      {/* Custom Fields */}
+      {(Object.keys(equipment.customFields ?? {}).length > 0 || user?.isAdmin) && (
+        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-white">Custom Fields</h3>
+            {user?.isAdmin && (
+              <button onClick={() => setShowCustomFields(true)} className="text-xs text-[#35B2FF] hover:opacity-80 transition-opacity">Edit Fields</button>
+            )}
+          </div>
+          {Object.keys(equipment.customFields ?? {}).length === 0 ? (
+            <p className="text-xs text-gray-500">No custom fields yet. Click Edit Fields to add some.</p>
+          ) : (
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              {Object.entries(equipment.customFields ?? {}).map(([key, value]) => (
+                <InfoRow key={key} label={key} value={value} />
+              ))}
+            </dl>
+          )}
+        </div>
+      )}
 
       {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
 
@@ -288,6 +321,9 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
       )}
       {showRetire && (
         <ConfirmModal title="Retire Equipment" message={`Mark "${equipment.name}" as retired? Any active assignment will be closed. History is preserved.`} confirmLabel="Retire" danger onConfirm={retireEquipment} onClose={() => setShowRetire(false)} confirming={acting} />
+      )}
+      {showCustomFields && (
+        <CustomFieldsModal fields={equipment.customFields ?? {}} onSave={saveCustomFields} onClose={() => setShowCustomFields(false)} saving={acting} />
       )}
     </div>
   );
@@ -429,5 +465,80 @@ function ConfirmModal({ title, message, confirmLabel, danger, onConfirm, onClose
         <button onClick={onConfirm} disabled={confirming} className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 ${danger ? "bg-red-500/15 text-red-400 border-red-500/20 hover:bg-red-500/25" : "bg-[#35B2FF]/15 text-[#35B2FF] border-[#35B2FF]/20 hover:bg-[#35B2FF]/25"}`}>{confirming ? "…" : confirmLabel}</button>
       </div>
     </Modal>
+  );
+}
+
+function CustomFieldsModal({ fields, onSave, onClose, saving }: { fields: Record<string, string>; onSave: (f: Record<string, string>) => void; onClose: () => void; saving: boolean }) {
+  const [entries, setEntries] = useState<{ key: string; value: string }[]>(
+    Object.entries(fields).map(([key, value]) => ({ key, value }))
+  );
+  const [keyError, setKeyError] = useState("");
+
+  function addRow() { setEntries((prev) => [...prev, { key: "", value: "" }]); }
+  function removeRow(i: number) { setEntries((prev) => prev.filter((_, idx) => idx !== i)); }
+  function updateRow(i: number, field: "key" | "value", val: string) {
+    setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e));
+  }
+
+  function handleSave() {
+    const keys = entries.map((e) => e.key.trim()).filter(Boolean);
+    if (new Set(keys).size !== keys.length) { setKeyError("Duplicate field names are not allowed."); return; }
+    const result: Record<string, string> = {};
+    for (const { key, value } of entries) {
+      if (key.trim()) result[key.trim()] = value.trim();
+    }
+    onSave(result);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-white">Custom Fields</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div className="space-y-2 mb-3 max-h-64 overflow-y-auto">
+          {entries.length === 0 && (
+            <p className="text-xs text-gray-500 py-2">No custom fields yet. Click + Add Field below.</p>
+          )}
+          {entries.map((entry, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input
+                value={entry.key}
+                onChange={(e) => updateRow(i, "key", e.target.value)}
+                placeholder="Field name"
+                className="flex-1 bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
+              />
+              <input
+                value={entry.value}
+                onChange={(e) => updateRow(i, "value", e.target.value)}
+                placeholder="Value"
+                className="flex-1 bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
+              />
+              <button onClick={() => removeRow(i)} className="text-gray-600 hover:text-red-400 transition-colors shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={addRow} className="flex items-center gap-1.5 text-xs text-[#35B2FF] hover:opacity-80 transition-opacity mb-4">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Add Field
+        </button>
+
+        {keyError && <p className="text-red-400 text-xs mb-3">{keyError}</p>}
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+          <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
+            {saving ? "Saving…" : "Save Fields"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

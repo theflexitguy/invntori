@@ -5,7 +5,7 @@ import { collection, getDocs, addDoc, updateDoc, doc, writeBatch } from "firebas
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import type { FirestoreInventoryItem, Warehouse, Product } from "@/lib/types";
+import type { FirestoreInventoryItem, Warehouse, Product, DetailField } from "@/lib/types";
 
 interface InventoryEntry extends FirestoreInventoryItem {
   warehouseName?: string;
@@ -22,15 +22,20 @@ export default function InventoryPage() {
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<InventoryEntry | null>(null);
+  const [detailFields, setDetailFields] = useState<DetailField[]>([]);
   const [showProductsMgr, setShowProductsMgr] = useState(false);
   const [showWarehousesMgr, setShowWarehousesMgr] = useState(false);
 
   const load = useCallback(async () => {
     if (!user?.companyID) return;
     const cid = user.companyID;
-    const whSnap = await getDocs(collection(db, "companies", cid, "warehouses"));
+    const [whSnap, dfSnap] = await Promise.all([
+      getDocs(collection(db, "companies", cid, "warehouses")),
+      getDocs(collection(db, "companies", cid, "detailFields")),
+    ]);
     const whs: Warehouse[] = whSnap.docs.map((d) => ({ id: d.id, name: d.data().name, ...d.data() }));
     setWarehouses(whs);
+    setDetailFields(dfSnap.docs.map((d) => ({ id: d.id, name: d.data().name as string })).sort((a, b) => a.name.localeCompare(b.name)));
 
     const allItems: InventoryEntry[] = [];
     await Promise.all(
@@ -77,6 +82,21 @@ export default function InventoryPage() {
     setDetail((prev) => {
       if (!prev || prev.id !== item.id || prev.warehouseID !== item.warehouseID) return prev;
       return { ...prev, quantity: newQty };
+    });
+  }
+
+  async function updateItemDetails(item: InventoryEntry, details: Record<string, string>) {
+    if (!user?.companyID || !item.warehouseID || !item.id) return;
+    await updateDoc(
+      doc(db, "companies", user.companyID, "warehouses", item.warehouseID, "inventory", item.id),
+      { details }
+    );
+    setItems((prev) =>
+      prev.map((i) => i.id === item.id && i.warehouseID === item.warehouseID ? { ...i, details } : i)
+    );
+    setDetail((prev) => {
+      if (!prev || prev.id !== item.id || prev.warehouseID !== item.warehouseID) return prev;
+      return { ...prev, details };
     });
   }
 
@@ -236,6 +256,8 @@ export default function InventoryPage() {
           onClose={() => setDetail(null)}
           isAdmin={!!user?.isAdmin}
           onUpdateQty={updateItemQty}
+          onUpdateDetails={updateItemDetails}
+          detailFields={detailFields}
         />
       )}
 
@@ -264,11 +286,15 @@ function ItemDetailModal({
   onClose,
   isAdmin,
   onUpdateQty,
+  onUpdateDetails,
+  detailFields,
 }: {
   item: InventoryEntry;
   onClose: () => void;
   isAdmin?: boolean;
   onUpdateQty?: (item: InventoryEntry, newQty: number) => Promise<void>;
+  onUpdateDetails?: (item: InventoryEntry, details: Record<string, string>) => Promise<void>;
+  detailFields?: DetailField[];
 }) {
   const qty = item.quantity ?? 0;
   const threshold = item.reorderThreshold ?? 0;
@@ -282,6 +308,10 @@ function ItemDetailModal({
   const [newQtyText, setNewQtyText] = useState(String(qty));
   const [savingQty, setSavingQty] = useState(false);
 
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailValues, setDetailValues] = useState<Record<string, string>>(item.details ?? {});
+  const [savingDetails, setSavingDetails] = useState(false);
+
   async function handleSaveQty() {
     const newQty = parseInt(newQtyText);
     if (isNaN(newQty) || newQty < 0 || !onUpdateQty) return;
@@ -294,13 +324,26 @@ function ItemDetailModal({
     }
   }
 
+  async function handleSaveDetails() {
+    if (!onUpdateDetails) return;
+    setSavingDetails(true);
+    try {
+      await onUpdateDetails(item, detailValues);
+      setEditingDetails(false);
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  const hasDetailFields = (detailFields?.length ?? 0) > 0;
+
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md shadow-2xl"
+        className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-5">
@@ -390,7 +433,7 @@ function ItemDetailModal({
           </div>
         )}
 
-        <div className="space-y-2.5 text-sm">
+        <div className="space-y-2.5 text-sm mb-4">
           <DetailRow label="Warehouse">
             <span className="text-white">{item.warehouseName ?? "—"}</span>
           </DetailRow>
@@ -405,6 +448,62 @@ function ItemDetailModal({
             </DetailRow>
           )}
         </div>
+
+        {/* Detail Fields */}
+        {hasDetailFields && (
+          <div className="border-t border-[#2a2f3e] pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Details</p>
+              {isAdmin && !editingDetails && (
+                <button
+                  onClick={() => { setDetailValues(item.details ?? {}); setEditingDetails(true); }}
+                  className="text-xs text-[#35B2FF] hover:opacity-80 transition-opacity"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            {!editingDetails ? (
+              <div className="space-y-2">
+                {detailFields!.map((field) => (
+                  <div key={field.id} className="flex items-center justify-between py-1.5 border-b border-[#2a2f3e] last:border-0">
+                    <span className="text-xs text-gray-500">{field.name}</span>
+                    <span className="text-xs text-white">{item.details?.[field.name] || "—"}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {detailFields!.map((field) => (
+                  <div key={field.id}>
+                    <label className="block text-xs text-gray-500 mb-1">{field.name}</label>
+                    <input
+                      value={detailValues[field.name] ?? ""}
+                      onChange={(e) => setDetailValues((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                      className="w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#35B2FF]"
+                      placeholder={`Enter ${field.name}`}
+                    />
+                  </div>
+                ))}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setEditingDetails(false)}
+                    className="flex-1 py-1.5 rounded-lg text-xs border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveDetails}
+                    disabled={savingDetails}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
+                  >
+                    {savingDetails ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

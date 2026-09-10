@@ -68,6 +68,9 @@ const adminSections = [
   {
     label: "Operations",
     items: [
+      { href: "/admin/requests", label: "Pending Requests" },
+      { href: "/admin/bulk-edit", label: "Manual Adjustment" },
+      { href: "/admin/equipment-repairs", label: "Equipment Repairs" },
       { href: "/orders", label: "Purchase Orders" },
       { href: "/fleet", label: "Fleet" },
     ],
