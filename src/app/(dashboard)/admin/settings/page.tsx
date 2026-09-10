@@ -65,12 +65,12 @@ export default function SettingsPage() {
     }
   }
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-2xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
         <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -78,13 +78,13 @@ export default function SettingsPage() {
       </div>
 
       <div className="mb-8 mt-4">
-        <h2 className="text-2xl font-bold text-white">Company Settings</h2>
-        <p className="text-gray-400 mt-1 text-sm">Manage your company profile and integrations</p>
+        <h1 className="ios-large-title text-white">Company Settings</h1>
+        <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">Manage your company profile and integrations</p>
       </div>
 
       <div className="space-y-5">
         {/* Company Name */}
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-5">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-5">
           <h3 className="text-sm font-semibold text-white mb-4">Company Profile</h3>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Company Name</label>
@@ -93,7 +93,7 @@ export default function SettingsPage() {
           {company?.subscriptionTier && (
             <div className="mt-3 flex items-center gap-2">
               <span className="text-xs text-gray-500">Plan:</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 font-medium capitalize">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 font-medium capitalize">
                 {company.subscriptionTier}
               </span>
             </div>
@@ -101,7 +101,7 @@ export default function SettingsPage() {
         </div>
 
         {/* AI Settings */}
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-5">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-5">
           <h3 className="text-sm font-semibold text-white mb-1">AI Assistant</h3>
           <p className="text-xs text-gray-500 mb-4">Choose which AI provider powers the Ask Invntori feature</p>
           <div className="space-y-2">
@@ -111,12 +111,12 @@ export default function SettingsPage() {
                 onClick={() => setAIProvider(provider.value)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left ${
                   aiProvider === provider.value
-                    ? "bg-[#35B2FF]/10 border-[#35B2FF]/30 text-white"
-                    : "bg-[#0f1117] border-[#2a2f3e] text-gray-400 hover:text-white hover:border-white/10"
+                    ? "bg-[#0A84FF]/10 border-[#0A84FF]/30 text-white"
+                    : "bg-[#000000] border-[#2C2C2E] text-gray-400 hover:text-white hover:border-white/10"
                 }`}
               >
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${aiProvider === provider.value ? "border-[#35B2FF]" : "border-gray-600"}`}>
-                  {aiProvider === provider.value && <div className="w-2 h-2 rounded-full bg-[#35B2FF]" />}
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${aiProvider === provider.value ? "border-[#0A84FF]" : "border-gray-600"}`}>
+                  {aiProvider === provider.value && <div className="w-2 h-2 rounded-full bg-[#0A84FF]" />}
                 </div>
                 <div>
                   <p className="text-sm font-medium">{provider.label}</p>
@@ -128,7 +128,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Integrations */}
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-5">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-5">
           <h3 className="text-sm font-semibold text-white mb-4">Integrations</h3>
           <div className="flex items-center justify-between">
             <div>
@@ -138,7 +138,7 @@ export default function SettingsPage() {
             <button
               onClick={() => setFieldRoutesEnabled((v) => !v)}
               className={`relative shrink-0 rounded-full transition-colors`}
-              style={{ width: "40px", height: "22px", backgroundColor: fieldRoutesEnabled ? "#35B2FF" : "#2a2f3e" }}
+              style={{ width: "40px", height: "22px", backgroundColor: fieldRoutesEnabled ? "#0A84FF" : "#2C2C2E" }}
             >
               <span
                 className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform`}
@@ -149,11 +149,11 @@ export default function SettingsPage() {
         </div>
 
         {/* Save button */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             onClick={handleSave}
             disabled={!companyName.trim() || saving}
-            className="px-6 py-2.5 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save Settings"}
           </button>

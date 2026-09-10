@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SparklesIcon } from "./nav";
 
+/**
+ * The "Ask invntori" pill — same treatment as the native app: a glowing blue
+ * capsule floating above the tab bar on phones, bottom-right on desktop.
+ */
 export function FloatingChatButton() {
   const pathname = usePathname();
   if (pathname === "/chat") return null;
@@ -10,12 +15,10 @@ export function FloatingChatButton() {
   return (
     <Link
       href="/chat"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-full bg-[#35B2FF] text-white shadow-xl shadow-[#35B2FF]/30 hover:bg-[#2a9fe8] hover:scale-105 active:scale-95 transition-all"
+      className="fixed right-4 lg:right-6 bottom-[calc(var(--tabbar-clearance)+10px)] lg:bottom-6 z-40 flex items-center gap-2 pl-4 pr-5 py-3 rounded-full bg-[#0A84FF] text-white shadow-[0_6px_24px_rgba(10,132,255,0.55)] active:scale-95 hover:bg-[#409CFF] transition-all"
     >
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-      <span className="text-sm font-semibold">Ask invntori</span>
+      <SparklesIcon className="w-5 h-5 shrink-0" />
+      <span className="text-[15px] font-semibold tracking-tight">Ask invntori</span>
     </Link>
   );
 }

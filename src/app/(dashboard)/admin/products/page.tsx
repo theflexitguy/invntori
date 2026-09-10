@@ -103,90 +103,85 @@ export default function ProductsPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-6 xl:p-8 w-full">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
         <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         <span className="text-sm text-white">Products</span>
       </div>
 
-      <div className="flex items-start justify-between mb-6 mt-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5 sm:mb-6 mt-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Products</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} products</p>
+          <h1 className="ios-large-title text-white">Products</h1>
+          <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">{filtered.length} products</p>
         </div>
         {user?.isAdmin && (
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
+          <button onClick={() => setShowAdd(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors whitespace-nowrap">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Add Product
           </button>
         )}
       </div>
 
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4">
         <input
           type="search"
           placeholder="Search products…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-72"
+          className="bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF] w-full sm:w-72"
         />
         <button
           onClick={() => setShowRetired((v) => !v)}
-          className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "border-[#2a2f3e] text-gray-500 hover:text-gray-300"}`}
+          className={`self-start shrink-0 whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-medium border transition-colors ${showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "border-[#2C2C2E] text-gray-500 hover:text-gray-300"}`}
         >
           {showRetired ? "Hiding Retired" : "Show Retired"}
         </button>
       </div>
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#2a2f3e]">
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reorder At</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit Cost</th>
-              <th className="px-6 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#2a2f3e]">
-            {filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">No products found</td></tr>
-            ) : (
-              filtered.map((p) => (
-                <tr key={p.id} className={`hover:bg-white/[0.02] transition-colors ${p.isRetired ? "opacity-50" : ""}`}>
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">{p.name}</span>
-                      {p.isRetired && <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/20">Retired</span>}
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5 text-gray-400">{p.category ?? "—"}</td>
-                  <td className="px-6 py-3.5 text-gray-400">{p.unit ?? "—"}</td>
-                  <td className="px-6 py-3.5 text-gray-400">{p.reorderThreshold != null ? p.reorderThreshold : "—"}</td>
-                  <td className="px-6 py-3.5 text-gray-400">
-                    {p.unitCost != null ? p.unitCost.toLocaleString("en-US", { style: "currency", currency: "USD" }) : "—"}
-                  </td>
-                  <td className="px-6 py-3.5">
-                    {user?.isAdmin && (
-                      <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => setEditProduct(p)} className="px-2.5 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Edit</button>
-                        <button onClick={() => toggleRetire(p)} className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${p.isRetired ? "text-green-400 hover:bg-green-400/10" : "text-amber-400 hover:bg-amber-400/10"}`}>
-                          {p.isRetired ? "Reactivate" : "Retire"}
-                        </button>
-                        {canDelete && (
-                          <button onClick={() => setConfirmDelete(p)} className="px-2.5 py-1.5 text-xs rounded-lg text-red-400 hover:bg-red-400/10 transition-colors">Delete</button>
-                        )}
-                      </div>
+      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
+        {filtered.length === 0 ? (
+          <p className="px-6 py-10 text-center text-gray-500 text-sm">No products found</p>
+        ) : (
+          <div className="divide-y divide-[#38383A]">
+            {filtered.map((p) => (
+              <div
+                key={p.id}
+                className={`px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 ${p.isRetired ? "opacity-50" : ""}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-white text-sm break-words">{p.name}</span>
+                    {p.isRetired && (
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/20">Retired</span>
                     )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                  <div className="flex items-center gap-x-3 gap-y-0.5 flex-wrap text-xs text-gray-500 mt-1">
+                    {p.category && <span>{p.category}</span>}
+                    {p.unit && <span>Unit: {p.unit}</span>}
+                    {p.reorderThreshold != null && <span>Reorder at {p.reorderThreshold}</span>}
+                    {p.unitCost != null && (
+                      <span className="text-gray-400">
+                        {p.unitCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {user?.isAdmin && (
+                  <div className="flex items-center gap-1 shrink-0 -ml-2 sm:ml-0">
+                    <button onClick={() => setEditProduct(p)} className="px-3 py-2 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors">Edit</button>
+                    <button onClick={() => toggleRetire(p)} className={`px-3 py-2 text-xs rounded-lg transition-colors ${p.isRetired ? "text-green-400 hover:bg-green-400/10" : "text-amber-400 hover:bg-amber-400/10"}`}>
+                      {p.isRetired ? "Reactivate" : "Retire"}
+                    </button>
+                    {canDelete && (
+                      <button onClick={() => setConfirmDelete(p)} className="px-3 py-2 text-xs rounded-lg text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-colors">Delete</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {(showAdd || editProduct) && (
@@ -198,13 +193,13 @@ export default function ProductsPage() {
       )}
 
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setConfirmDelete(null)}>
-          <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade" onClick={() => setConfirmDelete(null)}>
+          <div className="animate-sheet bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-sm sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch" onClick={(e) => e.stopPropagation()}>
             <h4 className="font-semibold text-white mb-2">Delete &quot;{confirmDelete.name}&quot;?</h4>
             <p className="text-sm text-gray-400 mb-5">This will permanently remove the product and all its warehouse inventory records. This cannot be undone.</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={() => handleDelete(confirmDelete)} disabled={deleting} className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 transition-colors disabled:opacity-50">
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2C2C2E] text-gray-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => handleDelete(confirmDelete)} disabled={deleting} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 transition-colors disabled:opacity-50">
                 {deleting ? "Deleting…" : "Delete Permanently"}
               </button>
             </div>
@@ -229,7 +224,7 @@ function ProductFormModal({ product, onSave, onClose }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   async function handleSave() {
     if (!name.trim()) { setError("Name is required."); return; }
@@ -253,8 +248,8 @@ function ProductFormModal({ product, onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade" onClick={onClose}>
+      <div className="animate-sheet bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-md sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-semibold text-white">{isEdit ? "Edit Product" : "Add Product"}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
@@ -266,7 +261,7 @@ function ProductFormModal({ product, onSave, onClose }: {
             <label className="block text-xs text-gray-500 mb-1">Name *</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Bifenthrin Spray" autoFocus />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Category</label>
               <input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Chemical" />
@@ -276,21 +271,21 @@ function ProductFormModal({ product, onSave, onClose }: {
               <input value={unit} onChange={(e) => setUnit(e.target.value)} className={inputCls} placeholder="e.g. oz" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Reorder Threshold</label>
-              <input type="number" min="0" value={threshold} onChange={(e) => setThreshold(e.target.value)} className={inputCls} placeholder="e.g. 10" />
+              <input type="number" inputMode="numeric" min="0" value={threshold} onChange={(e) => setThreshold(e.target.value)} className={inputCls} placeholder="e.g. 10" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Unit Cost ($)</label>
-              <input type="number" min="0" step="0.01" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} className={inputCls} placeholder="e.g. 12.50" />
+              <input type="number" inputMode="decimal" min="0" step="0.01" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} className={inputCls} placeholder="e.g. 12.50" />
             </div>
           </div>
           {error && <p className="text-red-400 text-xs">{error}</p>}
         </div>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
+          <button onClick={onClose} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2C2C2E] text-gray-400 hover:text-white transition-colors">Cancel</button>
+          <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors disabled:opacity-50">
             {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Product"}
           </button>
         </div>

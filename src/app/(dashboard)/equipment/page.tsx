@@ -6,6 +6,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { Badge } from "@/components/ui/Badge";
+import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
+import { PageHeader, HeaderButton, PlusIcon } from "@/components/ui/PageHeader";
 import Link from "next/link";
 import type { Equipment } from "@/lib/types";
 
@@ -94,83 +96,84 @@ export default function EquipmentPage() {
   }
 
   return (
-    <div className="p-6 xl:p-8 w-full">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Equipment</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} items</p>
-        </div>
-        {user?.isAdmin && (
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Add Equipment
-          </button>
-        )}
-      </div>
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
+      <PageHeader
+        title="Equipment"
+        subtitle={`${filtered.length} items`}
+        actions={
+          user?.isAdmin ? (
+            <HeaderButton onClick={() => setShowAdd(true)}>
+              <PlusIcon />
+              Add Equipment
+            </HeaderButton>
+          ) : undefined
+        }
+      />
 
       {/* Status filter tabs */}
-      <div className="flex gap-1 mb-5 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg p-1 w-fit flex-wrap">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setStatusFilter(tab.key)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
-              statusFilter === tab.key ? "bg-[#35B2FF]/20 text-[#35B2FF]" : "text-gray-500 hover:text-white"
-            }`}
-          >
-            {tab.label}
-            {counts[tab.key] !== undefined && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? "bg-[#35B2FF]/30" : "bg-white/5"}`}>
-                {counts[tab.key]}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 mb-3 overflow-x-auto no-scrollbar">
+        <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[14px] p-1">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                statusFilter === tab.key ? "bg-[#0A84FF]/20 text-[#0A84FF]" : "text-gray-500 hover:text-white"
+              }`}
+            >
+              {tab.label}
+              {counts[tab.key] !== undefined && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? "bg-[#0A84FF]/30" : "bg-white/5"}`}>
+                  {counts[tab.key]}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-4">
         <input
           type="search"
-          placeholder="Search by name, category, or serial…"
+          placeholder="Search name, category, or serial…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-72"
+          className="w-full sm:w-72 bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]"
         />
       </div>
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#2a2f3e]">
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Serial #</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Holder</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#2a2f3e]">
-            {filtered.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">No equipment found</td></tr>
-            ) : (
-              filtered.map((eq) => (
-                <tr key={eq.id} className={`hover:bg-white/[0.02] transition-colors ${eq.status === "retired" ? "opacity-50" : ""}`}>
-                  <td className="px-6 py-3.5">
-                    <Link href={`/equipment/${eq.id}`} className="font-medium text-white hover:text-[#35B2FF] transition-colors">
-                      {eq.name}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-3.5 text-gray-400">{eq.category ?? "—"}</td>
-                  <td className="px-6 py-3.5 text-gray-400 font-mono text-xs">{eq.serialNumber ?? "—"}</td>
-                  <td className="px-6 py-3.5">
+      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
+        {filtered.length === 0 ? (
+          <p className="px-6 py-10 text-center text-gray-500 text-sm">No equipment found</p>
+        ) : (
+          <div className="divide-y divide-[#38383A]">
+            {filtered.map((eq) => (
+              <Link
+                key={eq.id}
+                href={`/equipment/${eq.id}`}
+                className={`flex items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors ${
+                  eq.status === "retired" ? "opacity-50" : ""
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-white text-sm break-words">{eq.name}</span>
                     <Badge variant={statusVariant[eq.status] ?? "gray"}>{statusLabel[eq.status] ?? eq.status}</Badge>
-                  </td>
-                  <td className="px-6 py-3.5 text-gray-400">{eq.currentHolderName ?? "—"}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 truncate">
+                    {[eq.category, eq.serialNumber && `SN ${eq.serialNumber}`].filter(Boolean).join(" · ") || "No details"}
+                  </p>
+                  {eq.currentHolderName && (
+                    <p className="text-xs text-[#0A84FF]/80 mt-0.5 truncate">Held by {eq.currentHolderName}</p>
+                  )}
+                </div>
+                <svg className="w-4 h-4 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {showAdd && <AddEquipmentModal onSave={addEquipment} onClose={() => setShowAdd(false)} />}
@@ -185,7 +188,7 @@ function AddEquipmentModal({ onSave, onClose }: { onSave: (name: string, categor
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   async function handleSave() {
     setSaving(true);
@@ -194,27 +197,23 @@ function AddEquipmentModal({ onSave, onClose }: { onSave: (name: string, categor
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-white">Add Equipment</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="space-y-3 mb-5">
-          <div><label className="block text-xs text-gray-500 mb-1">Name *</label><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Backpack Sprayer" /></div>
-          <div><label className="block text-xs text-gray-500 mb-1">Category *</label><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Sprayer, Tool, Ladder" /></div>
-          <div><label className="block text-xs text-gray-500 mb-1">Serial Number</label><input value={serial} onChange={(e) => setSerial(e.target.value)} className={inputCls} placeholder="Optional" /></div>
-          <div><label className="block text-xs text-gray-500 mb-1">Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-16`} placeholder="Optional" /></div>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={!name.trim() || !category.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
+    <Sheet
+      title="Add Equipment"
+      onClose={onClose}
+      footer={
+        <SheetActions onCancel={onClose}>
+          <PrimaryButton onClick={handleSave} disabled={!name.trim() || !category.trim() || saving}>
             {saving ? "Saving…" : "Add Equipment"}
-          </button>
-        </div>
+          </PrimaryButton>
+        </SheetActions>
+      }
+    >
+      <div className="space-y-3">
+        <div><label className="block text-xs text-gray-500 mb-1">Name *</label><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Backpack Sprayer" /></div>
+        <div><label className="block text-xs text-gray-500 mb-1">Category *</label><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Sprayer, Tool, Ladder" /></div>
+        <div><label className="block text-xs text-gray-500 mb-1">Serial Number</label><input value={serial} onChange={(e) => setSerial(e.target.value)} className={inputCls} placeholder="Optional" /></div>
+        <div><label className="block text-xs text-gray-500 mb-1">Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-20`} placeholder="Optional" /></div>
       </div>
-    </div>
+    </Sheet>
   );
 }

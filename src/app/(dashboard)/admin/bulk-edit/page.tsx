@@ -254,7 +254,7 @@ export default function BulkEditPage() {
   if (!user?.isAdmin) return null;
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-3xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">
@@ -273,8 +273,8 @@ export default function BulkEditPage() {
 
       {/* Header */}
       <div className="mt-4 mb-6">
-        <h2 className="text-2xl font-bold text-white">Manual Inventory Adjustment</h2>
-        <p className="text-gray-400 mt-1 text-sm">
+        <h1 className="ios-large-title text-white">Manual Inventory Adjustment</h1>
+        <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">
           Directly add, subtract, or set quantities for items in a warehouse
         </p>
       </div>
@@ -293,7 +293,7 @@ export default function BulkEditPage() {
           <select
             value={selectedWarehouseID}
             onChange={(e) => setSelectedWarehouseID(e.target.value)}
-            className="w-full sm:w-auto bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#35B2FF] transition-colors appearance-none min-w-[220px]"
+            className="w-full sm:w-auto bg-[#1C1C1E] rounded-[12px] px-3 py-2 text-sm text-white focus:outline-none focus:border-[#0A84FF] transition-colors appearance-none min-w-[220px]"
           >
             <option value="">Select a warehouse…</option>
             {warehouses.map((w) => (
@@ -309,12 +309,12 @@ export default function BulkEditPage() {
       {selectedWarehouseID && (
         <>
           {loadingItems ? (
-            <div className="flex items-center justify-center py-16 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl">
+            <div className="flex items-center justify-center py-16 bg-[#1C1C1E] rounded-[14px]">
               <Spinner size={28} />
             </div>
           ) : rows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl mb-5">
-              <div className="w-12 h-12 rounded-full bg-[#2a2f3e] flex items-center justify-center mb-3">
+            <div className="flex flex-col items-center justify-center py-16 bg-[#1C1C1E] rounded-[14px] mb-5">
+              <div className="w-12 h-12 rounded-full bg-[#3A3A3C] flex items-center justify-center mb-3">
                 <svg
                   className="w-5 h-5 text-gray-500"
                   fill="none"
@@ -340,7 +340,7 @@ export default function BulkEditPage() {
                   Items ({rows.length})
                 </p>
                 {pendingChanges.size > 0 && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20">
                     {pendingChanges.size} change{pendingChanges.size !== 1 ? "s" : ""} pending
                   </span>
                 )}
@@ -354,7 +354,7 @@ export default function BulkEditPage() {
                 <div className="col-span-3 text-right">New Value</div>
               </div>
 
-              <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden divide-y divide-[#2a2f3e] mb-5">
+              <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden divide-y divide-[#38383A] mb-5">
                 {rows.map((row) => {
                   const isPending = pendingChanges.has(row.id);
                   const pendingChange = pendingChanges.get(row.id);
@@ -364,7 +364,7 @@ export default function BulkEditPage() {
                       key={row.id}
                       className={`grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3.5 transition-colors ${
                         isPending
-                          ? "bg-[#35B2FF]/[0.04] border-l-2 border-l-[#35B2FF]/40"
+                          ? "bg-[#0A84FF]/[0.04] border-l-2 border-l-[#0A84FF]/40"
                           : "hover:bg-white/[0.015]"
                       }`}
                     >
@@ -390,7 +390,7 @@ export default function BulkEditPage() {
                           <span className="text-xs text-gray-500">{row.unit}</span>
                         )}
                         {isPending && pendingChange && (
-                          <span className="text-sm font-semibold text-[#35B2FF] tabular-nums ml-1.5">
+                          <span className="text-sm font-semibold text-[#0A84FF] tabular-nums ml-1.5">
                             → {pendingChange.newQuantity}
                           </span>
                         )}
@@ -403,7 +403,7 @@ export default function BulkEditPage() {
                           onChange={(e) =>
                             updateRow(row.id, { action: e.target.value as AdjustAction })
                           }
-                          className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#35B2FF] transition-colors appearance-none"
+                          className="w-full bg-[#000000] border border-[#2C2C2E] rounded-lg px-2 py-2 sm:py-1.5 text-xs text-white focus:outline-none focus:border-[#0A84FF] transition-colors appearance-none"
                         >
                           <option value="Set">Set</option>
                           <option value="Add">Add</option>
@@ -420,10 +420,11 @@ export default function BulkEditPage() {
                           placeholder={row.action === "Set" ? String(row.currentQty) : "0"}
                           value={row.inputValue}
                           onChange={(e) => updateRow(row.id, { inputValue: e.target.value })}
-                          className={`w-full max-w-[100px] bg-[#0f1117] border rounded-lg px-3 py-1.5 text-sm text-white text-right placeholder-gray-600 focus:outline-none transition-colors ${
+                          inputMode="decimal"
+                          className={`w-full sm:max-w-[100px] bg-[#000000] border rounded-lg px-3 py-2 sm:py-1.5 text-sm text-white text-right placeholder-gray-600 focus:outline-none transition-colors ${
                             isPending
-                              ? "border-[#35B2FF]/50 focus:border-[#35B2FF]"
-                              : "border-[#2a2f3e] focus:border-[#35B2FF]"
+                              ? "border-[#0A84FF]/50 focus:border-[#0A84FF]"
+                              : "border-[#2C2C2E] focus:border-[#0A84FF]"
                           }`}
                         />
                         {row.unit && (
@@ -436,7 +437,7 @@ export default function BulkEditPage() {
               </div>
 
               {/* Notes + Submit */}
-              <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-5 space-y-4">
+              <div className="bg-[#1C1C1E] rounded-[14px] p-5 space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                     Notes / Reason{" "}
@@ -446,7 +447,7 @@ export default function BulkEditPage() {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Explain why these quantities are being adjusted…"
-                    className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition-colors resize-none h-20"
+                    className="w-full bg-[#000000] border border-[#2C2C2E] rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF] transition-colors resize-none h-20"
                   />
                 </div>
 
@@ -489,7 +490,7 @@ export default function BulkEditPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between gap-4 pt-1">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                   <p className="text-xs text-gray-500">
                     {pendingChanges.size > 0
                       ? `${pendingChanges.size} item${pendingChanges.size !== 1 ? "s" : ""} will be updated`
@@ -498,7 +499,7 @@ export default function BulkEditPage() {
                   <button
                     onClick={handleApply}
                     disabled={!canSubmit}
-                    className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <>
@@ -533,8 +534,8 @@ export default function BulkEditPage() {
 
       {/* Prompt to select warehouse */}
       {!selectedWarehouseID && !loadingWarehouses && warehouses.length > 0 && (
-        <div className="flex flex-col items-center justify-center py-16 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl border-dashed">
-          <div className="w-12 h-12 rounded-full bg-[#2a2f3e] flex items-center justify-center mb-3">
+        <div className="flex flex-col items-center justify-center py-16 bg-[#1C1C1E] rounded-[14px] border-dashed">
+          <div className="w-12 h-12 rounded-full bg-[#3A3A3C] flex items-center justify-center mb-3">
             <svg
               className="w-5 h-5 text-gray-500"
               fill="none"
