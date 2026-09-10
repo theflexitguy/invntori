@@ -28,7 +28,31 @@ export interface Product {
   unit?: string;
   category?: string;
   reorderThreshold?: number;
+  unitCost?: number;
   isRetired?: boolean;
+}
+
+export interface Category {
+  id?: string;
+  categoryname: string;
+}
+
+export interface UnitType {
+  id?: string;
+  unitname: string;
+}
+
+export interface Office {
+  id?: string;
+  name: string;
+  address?: string;
+  colorHex?: string;
+  fieldroutesOfficeID?: number;
+}
+
+export interface DetailField {
+  id?: string;
+  name: string;
 }
 
 // ── Company ────────────────────────────────────────────────────────────────

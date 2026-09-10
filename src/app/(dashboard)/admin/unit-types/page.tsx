@@ -1,0 +1,178 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
+import { Spinner } from "@/components/ui/Spinner";
+import Link from "next/link";
+import type { UnitType } from "@/lib/types";
+
+export default function UnitTypesPage() {
+  const { user } = useAuth();
+  const [unitTypes, setUnitTypes] = useState<UnitType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editItem, setEditItem] = useState<UnitType | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<UnitType | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [formValue, setFormValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    if (!user?.companyID) return;
+    load();
+  }, [user]);
+
+  async function load() {
+    if (!user?.companyID) return;
+    const snap = await getDocs(collection(db, "companies", user.companyID, "unittypes"));
+    setUnitTypes(
+      snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<UnitType, "id">) }))
+        .sort((a, b) => a.unitname.localeCompare(b.unitname))
+    );
+    setLoading(false);
+  }
+
+  function openAdd() {
+    setFormValue("");
+    setFormError("");
+    setEditItem(null);
+    setShowAdd(true);
+  }
+
+  function openEdit(ut: UnitType) {
+    setFormValue(ut.unitname);
+    setFormError("");
+    setEditItem(ut);
+    setShowAdd(true);
+  }
+
+  async function handleSave() {
+    if (!user?.companyID || !formValue.trim()) { setFormError("Name is required."); return; }
+    setSaving(true);
+    setFormError("");
+    try {
+      if (editItem?.id) {
+        await updateDoc(doc(db, "companies", user.companyID, "unittypes", editItem.id), { unitname: formValue.trim() });
+        setUnitTypes((prev) => prev.map((u) => u.id === editItem.id ? { ...u, unitname: formValue.trim() } : u).sort((a, b) => a.unitname.localeCompare(b.unitname)));
+      } else {
+        const docRef = await addDoc(collection(db, "companies", user.companyID, "unittypes"), { unitname: formValue.trim() });
+        setUnitTypes((prev) => [...prev, { id: docRef.id, unitname: formValue.trim() }].sort((a, b) => a.unitname.localeCompare(b.unitname)));
+      }
+      setShowAdd(false);
+      setEditItem(null);
+    } catch {
+      setFormError("Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(ut: UnitType) {
+    if (!user?.companyID || !ut.id) return;
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, "companies", user.companyID, "unittypes", ut.id));
+      setUnitTypes((prev) => prev.filter((u) => u.id !== ut.id));
+      setConfirmDelete(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+
+  if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
+
+  return (
+    <div className="p-6 xl:p-8 w-full max-w-2xl">
+      <div className="flex items-center gap-2 mb-1">
+        <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
+        <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        <span className="text-sm text-white">Unit Types</span>
+      </div>
+
+      <div className="flex items-start justify-between mb-6 mt-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Unit Types</h2>
+          <p className="text-gray-400 mt-1 text-sm">{unitTypes.length} units</p>
+        </div>
+        {user?.isAdmin && (
+          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Add Unit Type
+          </button>
+        )}
+      </div>
+
+      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+        {unitTypes.length === 0 ? (
+          <p className="text-center text-gray-500 py-12 text-sm">No unit types yet. Add one to get started.</p>
+        ) : (
+          <div className="divide-y divide-[#2a2f3e]">
+            {unitTypes.map((ut) => (
+              <div key={ut.id} className="flex items-center justify-between px-5 py-4">
+                <p className="text-sm font-medium text-white">{ut.unitname}</p>
+                {user?.isAdmin && (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => openEdit(ut)} className="px-2.5 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Edit</button>
+                    <button onClick={() => setConfirmDelete(ut)} className="px-2.5 py-1.5 text-xs rounded-lg text-red-400 hover:bg-red-400/10 transition-colors">Delete</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showAdd && (
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowAdd(false)}>
+          <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-white">{editItem ? "Edit Unit Type" : "Add Unit Type"}</h3>
+              <button onClick={() => setShowAdd(false)} className="text-gray-500 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="mb-5">
+              <label className="block text-xs text-gray-500 mb-1">Unit Name *</label>
+              <input
+                value={formValue}
+                onChange={(e) => setFormValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                className={inputCls}
+                placeholder="e.g. oz, gallon, bag"
+                autoFocus
+              />
+              {formError && <p className="text-red-400 text-xs mt-1">{formError}</p>}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowAdd(false)} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={handleSave} disabled={!formValue.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
+                {saving ? "Saving…" : editItem ? "Save Changes" : "Add Unit Type"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h4 className="font-semibold text-white mb-2">Delete &quot;{confirmDelete.unitname}&quot;?</h4>
+            <p className="text-sm text-gray-400 mb-5">This unit type will be removed. Existing inventory items using this unit will not be affected.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => handleDelete(confirmDelete)} disabled={deleting} className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 transition-colors disabled:opacity-50">
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

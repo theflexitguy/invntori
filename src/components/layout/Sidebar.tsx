@@ -46,37 +46,46 @@ const mainNav = [
   },
 ];
 
-const adminSubNav = [
+const adminSections = [
   {
-    href: "/employees",
-    label: "Employees",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
+    label: "Admin Actions",
+    items: [
+      { href: "/employees", label: "Employees" },
+      { href: "/admin/offices", label: "Offices" },
+      { href: "/admin/warehouses", label: "Warehouses" },
+      { href: "/admin/settings", label: "Settings" },
+    ],
   },
   {
-    href: "/orders",
-    label: "Purchase Orders",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
+    label: "Inventory",
+    items: [
+      { href: "/admin/categories", label: "Categories" },
+      { href: "/admin/unit-types", label: "Unit Types" },
+      { href: "/admin/products", label: "Products" },
+      { href: "/admin/detail-fields", label: "Detail Fields" },
+    ],
   },
   {
-    href: "/fleet",
-    label: "Fleet",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 17a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4zM3 10l1.5-4.5A1 1 0 015.45 5h13.1a1 1 0 01.95.68L21 10M3 10h18M3 10v7h1m14 0h1v-7" />
-      </svg>
-    ),
+    label: "Operations",
+    items: [
+      { href: "/orders", label: "Purchase Orders" },
+      { href: "/fleet", label: "Fleet" },
+    ],
+  },
+  {
+    label: "Reports",
+    items: [
+      { href: "/admin/valuation", label: "Inventory Valuation" },
+    ],
   },
 ];
 
-const ADMIN_PATHS = ["/employees", "/orders", "/fleet"];
+const ADMIN_PATHS = [
+  "/employees",
+  "/orders",
+  "/fleet",
+  "/admin",
+];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -123,53 +132,62 @@ export function Sidebar() {
           );
         })}
 
-        {/* Admin expandable section */}
-        <div className="pt-1">
-          <button
-            onClick={() => setAdminOpen((v) => !v)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isAdminPath
-                ? "bg-[#35B2FF]/10 text-[#35B2FF]"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="flex-1 text-left">Admin</span>
-            <svg
-              className={`w-4 h-4 shrink-0 transition-transform duration-200 ${adminOpen ? "rotate-180" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        {/* Admin expandable section — only shown to admins */}
+        {user?.isAdmin && (
+          <div className="pt-1">
+            <button
+              onClick={() => setAdminOpen((v) => !v)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isAdminPath
+                  ? "bg-[#35B2FF]/10 text-[#35B2FF]"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <span className="flex-1 text-left">Admin</span>
+              <svg
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${adminOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-          {adminOpen && (
-            <div className="mt-1 ml-4 pl-3 border-l border-[#2a2f3e] space-y-0.5">
-              {adminSubNav.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(item.href + "/");
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-[#35B2FF]/10 text-[#35B2FF]"
-                        : "text-gray-400 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
+            {adminOpen && (
+              <div className="mt-1 ml-4 pl-3 border-l border-[#2a2f3e] space-y-3 py-1">
+                {adminSections.map((section) => (
+                  <div key={section.label}>
+                    <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider px-3 mb-1">
+                      {section.label}
+                    </p>
+                    <div className="space-y-0.5">
+                      {section.items.map((item) => {
+                        const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                              active
+                                ? "bg-[#35B2FF]/10 text-[#35B2FF]"
+                                : "text-gray-400 hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* User footer */}
