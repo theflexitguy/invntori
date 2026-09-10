@@ -59,7 +59,7 @@ export function Sheet({
       <div
         role="dialog"
         aria-modal="true"
-        className={`animate-sheet w-full ${sizes[size]} bg-[#1a1f2e] border border-[#2a2f3e] rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85dvh] sm:m-4 overflow-hidden`}
+        className={`animate-sheet w-full ${sizes[size]} bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85dvh] sm:m-4 overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grab handle — phones only */}
@@ -90,7 +90,7 @@ export function Sheet({
         <div className="flex-1 min-h-0 overflow-y-auto scroll-touch px-5 sm:px-6 pb-5">{children}</div>
 
         {footer && (
-          <div className="shrink-0 border-t border-[#2a2f3e] px-5 sm:px-6 py-4 pb-[calc(1rem+var(--safe-bottom))] sm:pb-4 bg-[#1a1f2e]">
+          <div className="shrink-0 border-t border-[#2C2C2E] px-5 sm:px-6 py-4 pb-[calc(1rem+var(--safe-bottom))] sm:pb-4 bg-[#1C1C1E]">
             {footer}
           </div>
         )}
@@ -114,7 +114,7 @@ export function SheetActions({
     <div className="flex gap-3">
       <button
         onClick={onCancel}
-        className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium border border-[#2a2f3e] text-gray-400 hover:text-white active:bg-white/5 transition-colors"
+        className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium border border-[#2C2C2E] text-gray-400 hover:text-white active:bg-white/5 transition-colors"
       >
         {cancelLabel}
       </button>
@@ -136,7 +136,7 @@ export function PrimaryButton({
   children: ReactNode;
 }) {
   const tones = {
-    blue: "bg-[#35B2FF]/15 text-[#35B2FF] border-[#35B2FF]/20 hover:bg-[#35B2FF]/25",
+    blue: "bg-[#0A84FF]/15 text-[#0A84FF] border-[#0A84FF]/20 hover:bg-[#0A84FF]/25",
     green: "bg-green-500/15 text-green-400 border-green-500/20 hover:bg-green-500/25",
     red: "bg-red-500/15 text-red-400 border-red-500/20 hover:bg-red-500/25",
     amber: "bg-amber-400/15 text-amber-400 border-amber-400/20 hover:bg-amber-400/25",

@@ -149,7 +149,7 @@ function RejectModal({
       onClick={onClose}
     >
       <div
-        className="animate-sheet bg-[#1a1f2e] border border-[#2a2f3e] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-md sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch shadow-2xl"
+        className="animate-sheet bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-md sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">
@@ -176,7 +176,7 @@ function RejectModal({
             onChange={(e) => setNote(e.target.value)}
             placeholder="Explain why this repair request is being rejected…"
             rows={4}
-            className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500/60 resize-none transition-colors"
+            className="w-full bg-[#000000] border border-[#2C2C2E] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500/60 resize-none transition-colors"
             autoFocus
           />
           {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
@@ -185,7 +185,7 @@ function RejectModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm border border-[#2a2f3e] text-gray-400 hover:text-white hover:border-[#3a3f4e] transition-colors"
+            className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm border border-[#2C2C2E] text-gray-400 hover:text-white hover:border-[#3A3A3C] transition-colors"
           >
             Cancel
           </button>
@@ -248,10 +248,10 @@ function RepairCard({
 
   return (
     <div
-      className={`bg-[#1a1f2e] border rounded-2xl overflow-hidden transition-all duration-200 ${
+      className={`bg-[#1C1C1E] border rounded-2xl overflow-hidden transition-all duration-200 ${
         isOpen
-          ? "border-[#2a2f3e] hover:border-[#35B2FF]/30"
-          : "border-[#1e2230] opacity-75 hover:opacity-90"
+          ? "border-[#2C2C2E] hover:border-[#0A84FF]/30"
+          : "border-[#2C2C2E] opacity-75 hover:opacity-90"
       }`}
     >
       {/* Card header */}
@@ -263,7 +263,7 @@ function RepairCard({
                 {repair.equipmentName}
               </h3>
               {equipment?.category && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-[#35B2FF]/10 text-[#35B2FF] border border-[#35B2FF]/20 shrink-0">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 shrink-0">
                   {equipment.category}
                 </span>
               )}
@@ -284,7 +284,7 @@ function RepairCard({
               onClick={() => setExpanded((v) => !v)}
               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                 expanded
-                  ? "bg-[#35B2FF]/15 text-[#35B2FF]"
+                  ? "bg-[#0A84FF]/15 text-[#0A84FF]"
                   : "bg-white/5 text-gray-500 hover:text-white hover:bg-white/10"
               }`}
               aria-label={expanded ? "Collapse" : "Expand"}
@@ -307,7 +307,7 @@ function RepairCard({
 
       {/* Expanded panel */}
       {expanded && (
-        <div className="border-t border-[#2a2f3e] bg-[#151a26] px-4 sm:px-5 py-5 space-y-4">
+        <div className="border-t border-[#2C2C2E] bg-[#2C2C2E] px-4 sm:px-5 py-5 space-y-4">
           {/* Full description */}
           {repair.description.length > 120 && (
             <div>
@@ -346,7 +346,7 @@ function RepairCard({
 
           {/* Response note */}
           {repair.responseNote && (
-            <div className="bg-[#0f1117] border border-[#2a2f3e] rounded-xl p-4">
+            <div className="bg-[#000000] border border-[#2C2C2E] rounded-xl p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Admin Response
               </p>
@@ -360,7 +360,7 @@ function RepairCard({
               <button
                 onClick={handleApprove}
                 disabled={actioning !== null}
-                className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm font-semibold bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/30 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm font-semibold bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/30 hover:bg-[#0A84FF]/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actioning === "approve" ? (
                   <Spinner size={14} />
@@ -437,7 +437,7 @@ function EmptyState({ tab }: { tab: FilterTab }) {
 
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-[#1a1f2e] border border-[#2a2f3e] flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-2xl bg-[#1C1C1E] border border-[#2C2C2E] flex items-center justify-center mb-4">
         <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} />
         </svg>
@@ -650,7 +650,7 @@ export default function EquipmentRepairsPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-3xl pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-1">
         <Link
@@ -674,8 +674,8 @@ export default function EquipmentRepairsPage() {
       <div className="mt-4 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Equipment Repairs</h2>
-            <p className="text-gray-400 mt-1 text-sm">
+            <h1 className="ios-large-title text-white">Equipment Repairs</h1>
+            <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">
               {openCount > 0 ? (
                 <>
                   <span className="text-amber-400 font-medium">{openCount}</span>
@@ -697,14 +697,14 @@ export default function EquipmentRepairsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 mb-4 sm:mb-5 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-1">
+      <div className="flex gap-1 mb-4 sm:mb-5 bg-[#1C1C1E] rounded-[14px] p-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
               activeTab === tab.id
-                ? "bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/25 shadow-sm"
+                ? "bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/25 shadow-sm"
                 : "text-gray-500 hover:text-gray-300"
             }`}
           >
@@ -713,7 +713,7 @@ export default function EquipmentRepairsPage() {
               <span
                 className={`text-xs px-1.5 py-0.5 rounded-full ${
                   activeTab === tab.id
-                    ? "bg-[#35B2FF]/20 text-[#35B2FF]"
+                    ? "bg-[#0A84FF]/20 text-[#0A84FF]"
                     : "bg-white/5 text-gray-500"
                 }`}
               >

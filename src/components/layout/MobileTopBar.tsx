@@ -1,26 +1,45 @@
 "use client";
 
-import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { MenuIcon, pageTitle } from "./nav";
+import { usePathname, useRouter } from "next/navigation";
+import { ChevronLeftIcon, pageTitle, isRootRoute } from "./nav";
 
-export function MobileTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
+/**
+ * iOS-style navigation bar: a circular back button on pushed screens and a
+ * centered title that fades in only once the large title has scrolled away —
+ * the same large-title collapse the native app uses.
+ */
+export function MobileTopBar({ scrolled }: { scrolled: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const showBack = !isRootRoute(pathname);
 
   return (
-    <header className="lg:hidden shrink-0 bg-[#0f1117] border-b border-[#1e2130] pt-safe px-safe">
-      <div className="h-14 flex items-center gap-2 px-2">
-        <button
-          onClick={onOpenMenu}
-          aria-label="Open navigation menu"
-          className="tap-target flex items-center justify-center rounded-xl text-gray-300 active:bg-white/10 transition-colors"
-        >
-          <MenuIcon />
-        </button>
-        <h1 className="flex-1 min-w-0 text-base font-semibold text-white truncate">
-          {pageTitle(pathname)}
-        </h1>
-        <Image src="/logo.png" alt="invntori" width={28} height={28} className="rounded-lg shrink-0 mr-1.5" />
+    <header
+      className={`lg:hidden shrink-0 z-30 px-safe transition-colors duration-200 ${
+        scrolled
+          ? "bg-[#000000]/80 backdrop-blur-xl border-b border-[#1C1C1E]"
+          : "bg-[#000000] border-b border-transparent"
+      }`}
+    >
+      <div className="pt-safe">
+        <div className="h-11 flex items-center px-2 relative">
+          {showBack && (
+            <button
+              onClick={() => router.back()}
+              aria-label="Back"
+              className="tap-target flex items-center justify-center rounded-full bg-[#1C1C1E] text-[#0A84FF] w-9 h-9 min-w-0 min-h-0 active:bg-[#2C2C2E] transition-colors"
+            >
+              <ChevronLeftIcon />
+            </button>
+          )}
+          <h1
+            className={`absolute inset-x-12 text-center text-[17px] font-semibold text-white truncate transition-opacity duration-200 ${
+              scrolled ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {pageTitle(pathname)}
+          </h1>
+        </div>
       </div>
     </header>
   );

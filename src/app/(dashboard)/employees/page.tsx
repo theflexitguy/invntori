@@ -89,7 +89,7 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <PageHeader
         title="Employees"
         subtitle={`${active.length} active · ${inactive.length} inactive`}
@@ -101,7 +101,7 @@ export default function EmployeesPage() {
           placeholder="Search by name or email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-72 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]"
+          className="w-full sm:w-72 bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]"
         />
       </div>
 
@@ -160,10 +160,10 @@ export default function EmployeesPage() {
             </div>
 
             {user?.isAdmin && (
-              <div className="mt-6 pt-5 border-t border-[#2a2f3e] space-y-2">
+              <div className="mt-6 pt-5 border-t border-[#2C2C2E] space-y-2">
                 <button
                   onClick={() => { setEditing(selected); setSelected(null); }}
-                  className="w-full py-3 rounded-xl text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors"
+                  className="w-full py-3 rounded-xl text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors"
                 >
                   Edit Role &amp; Permissions
                 </button>
@@ -198,12 +198,12 @@ export default function EmployeesPage() {
 
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
-    <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-      <div className="px-4 sm:px-6 py-3 border-b border-[#2a2f3e] flex items-center gap-2">
+    <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
+      <div className="px-4 sm:px-6 py-3 border-b border-[#2C2C2E] flex items-center gap-2">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</h3>
         <span className="text-xs text-gray-600">({count})</span>
       </div>
-      <div className="divide-y divide-[#2a2f3e]">{children}</div>
+      <div className="divide-y divide-[#38383A]">{children}</div>
     </div>
   );
 }
@@ -215,8 +215,8 @@ function EmployeeRow({ emp, isAdmin, toggling, onSelect, onToggle }: {
   return (
     <div className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-white/[0.02] transition-colors">
       <button className="flex items-center gap-3 flex-1 min-w-0 text-left" onClick={onSelect}>
-        <div className="w-8 h-8 rounded-full bg-[#35B2FF]/20 flex items-center justify-center shrink-0">
-          <span className="text-xs font-semibold text-[#35B2FF]">{emp.name[0].toUpperCase()}</span>
+        <div className="w-8 h-8 rounded-full bg-[#0A84FF]/20 flex items-center justify-center shrink-0">
+          <span className="text-xs font-semibold text-[#0A84FF]">{emp.name[0].toUpperCase()}</span>
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -233,7 +233,7 @@ function EmployeeRow({ emp, isAdmin, toggling, onSelect, onToggle }: {
           disabled={toggling}
           className={`ml-2 shrink-0 px-3 py-2 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
             emp.isActive !== false
-              ? "border-[#2a2f3e] text-gray-500 hover:text-red-400 hover:border-red-400/30"
+              ? "border-[#2C2C2E] text-gray-500 hover:text-red-400 hover:border-red-400/30"
               : "border-green-500/20 text-green-400 hover:bg-green-500/10"
           }`}
         >
@@ -246,7 +246,7 @@ function EmployeeRow({ emp, isAdmin, toggling, onSelect, onToggle }: {
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-[#2a2f3e] last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-[#2C2C2E] last:border-0">
       <span className="text-gray-500">{label}</span>
       <div>{children}</div>
     </div>
@@ -292,7 +292,7 @@ function EditEmployeeModal({ emp, onSave, onClose }: {
     >
       <div className="space-y-4">
           {/* Role */}
-          <div className="bg-[#0d1117] border border-[#2a2f3e] rounded-xl p-4 space-y-3">
+          <div className="bg-[#2C2C2E] border border-[#2C2C2E] rounded-xl p-4 space-y-3">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</p>
             <ToggleRow label="Admin" description="Full access to all features" checked={isAdmin} onChange={setIsAdmin} />
             {!isAdmin && (
@@ -302,7 +302,7 @@ function EditEmployeeModal({ emp, onSave, onClose }: {
 
           {/* Permissions (only for managers, not admins) */}
           {!isAdmin && (
-            <div className="bg-[#0d1117] border border-[#2a2f3e] rounded-xl p-4 space-y-3">
+            <div className="bg-[#2C2C2E] border border-[#2C2C2E] rounded-xl p-4 space-y-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Manager Permissions</p>
               {PERMISSION_KEYS.map(({ key, label }) => (
                 <ToggleRow key={key} label={label} checked={permissions.has(key)} onChange={() => togglePerm(key)} />
@@ -326,7 +326,7 @@ function ToggleRow({ label, description, checked, onChange }: { label: string; d
         role="switch"
         aria-checked={checked}
         aria-label={label}
-        className={`relative shrink-0 w-11 rounded-full transition-colors mt-0.5 ${checked ? "bg-[#35B2FF]" : "bg-[#2a2f3e]"}`}
+        className={`relative shrink-0 w-11 rounded-full transition-colors mt-0.5 ${checked ? "bg-[#0A84FF]" : "bg-[#3A3A3C]"}`}
         style={{ height: "26px" }}
       >
         <span className={`absolute top-0.5 w-[22px] h-[22px] rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[20px]" : "translate-x-0.5"}`} />

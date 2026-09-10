@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/layout/nav";
 
 /**
- * Consistent page top: breadcrumb, title, subtitle, and an action row that
- * stacks under the title on phones instead of squeezing beside it.
+ * iOS large title with an optional breadcrumb / back affordance and an action
+ * row that stacks under the title on phones.
  */
 export function PageHeader({
   title,
@@ -21,35 +22,33 @@ export function PageHeader({
   backLabel?: string;
 }) {
   return (
-    <div className="mb-5 sm:mb-6">
+    <div className="mb-4">
       {breadcrumb && (
-        <div className="flex items-center gap-2 mb-3">
-          <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Link href="/admin" className="text-[15px] text-[#0A84FF] active:opacity-60 transition-opacity">
             Admin
           </Link>
-          <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-sm text-white truncate">{breadcrumb}</span>
+          <ChevronRightIcon className="w-3 h-3 text-[rgba(235,235,245,0.3)] shrink-0" />
+          <span className="text-[15px] text-[rgba(235,235,245,0.6)] truncate">{breadcrumb}</span>
         </div>
       )}
 
       {backHref && (
         <Link
           href={backHref}
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-white transition-colors mb-3 -ml-1 py-1"
+          className="inline-flex items-center gap-1 text-[15px] text-[#0A84FF] mb-2 -ml-1 py-1 active:opacity-60 transition-opacity"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeftIcon className="w-4 h-4" />
           {backLabel ?? "Back"}
         </Link>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight break-words">{title}</h2>
-          {subtitle && <p className="text-gray-400 mt-1 text-sm">{subtitle}</p>}
+          <h1 className="ios-large-title text-white break-words">{title}</h1>
+          {subtitle && (
+            <p className="text-[15px] text-[rgba(235,235,245,0.6)] mt-1">{subtitle}</p>
+          )}
         </div>
         {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
       </div>
@@ -57,7 +56,7 @@ export function PageHeader({
   );
 }
 
-/** Header action button — full-width-ish on phones, natural width on desktop. */
+/** iOS-style capsule action button. */
 export function HeaderButton({
   onClick,
   children,
@@ -69,22 +68,22 @@ export function HeaderButton({
 }) {
   const cls =
     variant === "primary"
-      ? "bg-[#35B2FF]/15 text-[#35B2FF] border-[#35B2FF]/20 hover:bg-[#35B2FF]/25"
-      : "bg-white/5 text-gray-300 border-[#2a2f3e] hover:text-white hover:border-white/20";
+      ? "bg-[#0A84FF] text-white active:bg-[#0071E3]"
+      : "bg-[#1C1C1E] text-[#0A84FF] active:bg-[#2C2C2E]";
   return (
     <button
       onClick={onClick}
-      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium border transition-colors whitespace-nowrap ${cls}`}
+      className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-full text-[15px] font-semibold transition-colors whitespace-nowrap ${cls}`}
     >
       {children}
     </button>
   );
 }
 
-export function PlusIcon({ className = "w-4 h-4" }: { className?: string }) {
+export function PlusIcon({ className = "w-[15px] h-[15px]" }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M12 4v16m8-8H4" />
     </svg>
   );
 }

@@ -96,7 +96,7 @@ export default function EquipmentPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <PageHeader
         title="Equipment"
         subtitle={`${filtered.length} items`}
@@ -112,18 +112,18 @@ export default function EquipmentPage() {
 
       {/* Status filter tabs */}
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0 mb-3 overflow-x-auto no-scrollbar">
-        <div className="inline-flex gap-1 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-1">
+        <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[14px] p-1">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setStatusFilter(tab.key)}
               className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                statusFilter === tab.key ? "bg-[#35B2FF]/20 text-[#35B2FF]" : "text-gray-500 hover:text-white"
+                statusFilter === tab.key ? "bg-[#0A84FF]/20 text-[#0A84FF]" : "text-gray-500 hover:text-white"
               }`}
             >
               {tab.label}
               {counts[tab.key] !== undefined && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? "bg-[#35B2FF]/30" : "bg-white/5"}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? "bg-[#0A84FF]/30" : "bg-white/5"}`}>
                   {counts[tab.key]}
                 </span>
               )}
@@ -138,15 +138,15 @@ export default function EquipmentPage() {
           placeholder="Search name, category, or serial…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-72 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]"
+          className="w-full sm:w-72 bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]"
         />
       </div>
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
         {filtered.length === 0 ? (
           <p className="px-6 py-10 text-center text-gray-500 text-sm">No equipment found</p>
         ) : (
-          <div className="divide-y divide-[#2a2f3e]">
+          <div className="divide-y divide-[#38383A]">
             {filtered.map((eq) => (
               <Link
                 key={eq.id}
@@ -164,7 +164,7 @@ export default function EquipmentPage() {
                     {[eq.category, eq.serialNumber && `SN ${eq.serialNumber}`].filter(Boolean).join(" · ") || "No details"}
                   </p>
                   {eq.currentHolderName && (
-                    <p className="text-xs text-[#35B2FF]/80 mt-0.5 truncate">Held by {eq.currentHolderName}</p>
+                    <p className="text-xs text-[#0A84FF]/80 mt-0.5 truncate">Held by {eq.currentHolderName}</p>
                   )}
                 </div>
                 <svg className="w-4 h-4 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +188,7 @@ function AddEquipmentModal({ onSave, onClose }: { onSave: (name: string, categor
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   async function handleSave() {
     setSaving(true);

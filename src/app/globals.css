@@ -1,13 +1,37 @@
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────────────────────────────────
+   iOS dark-mode system palette — matched to the native invntori app so the
+   web app reads as the same product on the same device.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --brand: #35B2FF;
-  --brand-dark: #1a8fd1;
-  --sidebar-bg: #0f1117;
-  --sidebar-border: #1e2130;
-  --app-bg: #12151f;
-  --surface: #1a1f2e;
-  --surface-border: #2a2f3e;
+  /* Backgrounds */
+  --bg: #000000;
+  --card: #1c1c1e;
+  --card-2: #2c2c2e;
+  --fill: #3a3a3c;
+  --separator: #38383a;
+
+  /* Labels */
+  --label: #ffffff;
+  --label-2: rgba(235, 235, 245, 0.6);
+  --label-3: rgba(235, 235, 245, 0.3);
+
+  /* System colors (dark) */
+  --blue: #0a84ff;
+  --green: #30d158;
+  --red: #ff453a;
+  --orange: #ff9f0a;
+  --yellow: #ffd60a;
+  --teal: #64d2ff;
+  --purple: #bf5af2;
+  --indigo: #5e5ce6;
+  --pink: #ff375f;
+
+  /* Legacy aliases */
+  --brand: var(--blue);
+  --sidebar-bg: #000000;
+  --sidebar-border: #1c1c1e;
 
   /* Device safe areas (notch / home indicator) */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -15,9 +39,11 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
 
-  /* App chrome heights (mobile) */
-  --header-h: 56px;
-  --tabbar-h: 58px;
+  /* App chrome */
+  --navbar-h: 48px;
+  --tabbar-h: 64px;
+  /* Room the floating tab bar needs at the bottom of scrollable content */
+  --tabbar-clearance: calc(94px + var(--safe-bottom));
 
   color-scheme: dark;
 }
@@ -28,9 +54,16 @@ html {
 }
 
 body {
-  @apply bg-[#12151f] text-gray-100 antialiased;
+  /* SF Pro on Apple devices — the same typeface as the native app */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Segoe UI", Roboto, system-ui, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--label);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -48,6 +81,20 @@ input,
 select,
 textarea {
   touch-action: manipulation;
+}
+
+/* iOS large-title weight/tracking */
+.ios-large-title {
+  font-size: 34px;
+  line-height: 41px;
+  font-weight: 700;
+  letter-spacing: 0.011em;
+}
+@media (max-width: 380px) {
+  .ios-large-title {
+    font-size: 30px;
+    line-height: 36px;
+  }
 }
 
 /* iOS zooms the viewport when a focused field is under 16px. Keep every
@@ -93,6 +140,11 @@ textarea {
   min-width: 44px;
 }
 
+/* Inset separators inside grouped lists, the way iOS draws them */
+.ios-group > *:not(:last-child) {
+  box-shadow: inset 0 -0.5px 0 0 var(--separator);
+}
+
 /* Bottom-sheet entrance (mobile modals) */
 @keyframes sheet-up {
   from {
@@ -111,10 +163,10 @@ textarea {
   }
 }
 .animate-sheet {
-  animation: sheet-up 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  animation: sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .animate-fade {
-  animation: fade-in 0.18s ease-out;
+  animation: fade-in 0.2s ease-out;
 }
 @media (min-width: 640px) {
   .animate-sheet {
@@ -140,8 +192,9 @@ textarea {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-700 rounded-full;
+  background: #3a3a3c;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-600;
+  background: #545458;
 }

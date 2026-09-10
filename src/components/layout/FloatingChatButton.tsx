@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChatIcon } from "./nav";
+import { SparklesIcon } from "./nav";
 
 /**
- * Desktop-only shortcut. On phones the same destination is the "Ask" tab in
- * the bottom bar, so a floating button would just cover content twice over.
+ * The "Ask invntori" pill — same treatment as the native app: a glowing blue
+ * capsule floating above the tab bar on phones, bottom-right on desktop.
  */
 export function FloatingChatButton() {
   const pathname = usePathname();
@@ -15,10 +15,10 @@ export function FloatingChatButton() {
   return (
     <Link
       href="/chat"
-      className="hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-2.5 px-4 py-3 rounded-full bg-[#35B2FF] text-white shadow-xl shadow-[#35B2FF]/30 hover:bg-[#2a9fe8] hover:scale-105 active:scale-95 transition-all"
+      className="fixed right-4 lg:right-6 bottom-[calc(var(--tabbar-clearance)+10px)] lg:bottom-6 z-40 flex items-center gap-2 pl-4 pr-5 py-3 rounded-full bg-[#0A84FF] text-white shadow-[0_6px_24px_rgba(10,132,255,0.55)] active:scale-95 hover:bg-[#409CFF] transition-all"
     >
-      <ChatIcon className="w-5 h-5 shrink-0" />
-      <span className="text-sm font-semibold">Ask invntori</span>
+      <SparklesIcon className="w-5 h-5 shrink-0" />
+      <span className="text-[15px] font-semibold tracking-tight">Ask invntori</span>
     </Link>
   );
 }

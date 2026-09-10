@@ -74,12 +74,12 @@ export default function WarehousesPage() {
     }
   }
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-2xl pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
         <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -88,22 +88,22 @@ export default function WarehousesPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5 sm:mb-6 mt-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Warehouses</h2>
-          <p className="text-gray-400 mt-1 text-sm">{warehouses.length} warehouses</p>
+          <h1 className="ios-large-title text-white">Warehouses</h1>
+          <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">{warehouses.length} warehouses</p>
         </div>
         {user?.isAdmin && (
-          <button onClick={openAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors whitespace-nowrap">
+          <button onClick={openAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors whitespace-nowrap">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Add Warehouse
           </button>
         )}
       </div>
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
         {warehouses.length === 0 ? (
           <p className="text-center text-gray-500 py-12 text-sm">No warehouses yet. Add one to get started.</p>
         ) : (
-          <div className="divide-y divide-[#2a2f3e]">
+          <div className="divide-y divide-[#38383A]">
             {warehouses.map((wh) => (
               <div key={wh.id} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
                 <div>
@@ -121,7 +121,7 @@ export default function WarehousesPage() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade" onClick={() => setShowForm(false)}>
-          <div className="animate-sheet bg-[#1a1f2e] border border-[#2a2f3e] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-sm sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch" onClick={(e) => e.stopPropagation()}>
+          <div className="animate-sheet bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-sm sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-semibold text-white">{editItem ? "Edit Warehouse" : "Add Warehouse"}</h3>
               <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-white transition-colors">
@@ -140,8 +140,8 @@ export default function WarehousesPage() {
               {formError && <p className="text-red-400 text-xs">{formError}</p>}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2C2C2E] text-gray-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors disabled:opacity-50">
                 {saving ? "Saving…" : editItem ? "Save Changes" : "Add Warehouse"}
               </button>
             </div>

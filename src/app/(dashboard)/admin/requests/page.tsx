@@ -176,7 +176,7 @@ export default function AdminRequestsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full max-w-3xl pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">
@@ -196,35 +196,35 @@ export default function AdminRequestsPage() {
       {/* Header */}
       <div className="mt-4 mb-6">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Pending Requests</h2>
+          <h1 className="ios-large-title text-white">Pending Requests</h1>
           {counts["Pending"] > 0 && (
             <span className="text-sm font-medium px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400 border border-amber-400/20">
               {counts["Pending"]}
             </span>
           )}
         </div>
-        <p className="text-gray-400 mt-1 text-sm">
+        <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">
           All inventory requests from every employee
         </p>
       </div>
 
       {/* Tabs + Search row */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="flex gap-1 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-[#1C1C1E] rounded-[12px] p-1 w-fit">
           {STATUS_TABS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
                 tab === t
-                  ? "bg-[#35B2FF]/20 text-[#35B2FF]"
+                  ? "bg-[#0A84FF]/20 text-[#0A84FF]"
                   : "text-gray-500 hover:text-white"
               }`}
             >
               {t}
               <span
                 className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  tab === t ? "bg-[#35B2FF]/30" : "bg-white/5"
+                  tab === t ? "bg-[#0A84FF]/30" : "bg-white/5"
                 }`}
               >
                 {counts[t]}
@@ -252,7 +252,7 @@ export default function AdminRequestsPage() {
             placeholder="Search by employee or product…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition-colors"
+            className="w-full bg-[#1C1C1E] rounded-[12px] pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF] transition-colors"
           />
         </div>
       </div>
@@ -260,8 +260,8 @@ export default function AdminRequestsPage() {
       {/* Request list */}
       <div className="space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl">
-            <div className="w-12 h-12 rounded-full bg-[#2a2f3e] flex items-center justify-center mb-3">
+          <div className="flex flex-col items-center justify-center py-16 bg-[#1C1C1E] rounded-[14px]">
+            <div className="w-12 h-12 rounded-full bg-[#3A3A3C] flex items-center justify-center mb-3">
               <svg
                 className="w-5 h-5 text-gray-500"
                 fill="none"
@@ -290,7 +290,7 @@ export default function AdminRequestsPage() {
             return (
               <div
                 key={r.id}
-                className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden transition-colors hover:border-[#35B2FF]/20"
+                className="bg-[#1C1C1E] rounded-[14px] overflow-hidden transition-colors hover:border-[#0A84FF]/20"
               >
                 {/* Card header — clickable */}
                 <button
@@ -385,16 +385,16 @@ export default function AdminRequestsPage() {
 
                 {/* Expanded detail */}
                 {isExpanded && (
-                  <div className="border-t border-[#2a2f3e] bg-[#0f1117]/50 px-5 py-4">
+                  <div className="border-t border-[#2C2C2E] bg-[#000000]/50 px-5 py-4">
                     {/* Item list */}
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                       Items
                     </p>
-                    <div className="space-y-0 rounded-lg border border-[#2a2f3e] overflow-hidden mb-4">
+                    <div className="space-y-0 rounded-lg border border-[#2C2C2E] overflow-hidden mb-4">
                       {r.items?.map((item, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between px-4 py-2.5 text-sm border-b border-[#2a2f3e] last:border-0 hover:bg-white/[0.015]"
+                          className="flex items-center justify-between px-4 py-2.5 text-sm border-b border-[#2C2C2E] last:border-0 hover:bg-white/[0.015]"
                         >
                           <span className="text-white">{item.productName}</span>
                           <span className="text-gray-400 font-medium tabular-nums">
@@ -407,7 +407,7 @@ export default function AdminRequestsPage() {
 
                     {/* Notes */}
                     {r.notes && (
-                      <div className="mb-4 flex items-start gap-2 bg-white/[0.03] border border-[#2a2f3e] rounded-lg px-3 py-2.5">
+                      <div className="mb-4 flex items-start gap-2 bg-white/[0.03] border border-[#2C2C2E] rounded-lg px-3 py-2.5">
                         <svg
                           className="w-3.5 h-3.5 text-gray-500 mt-0.5 shrink-0"
                           fill="none"

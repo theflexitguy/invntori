@@ -67,7 +67,7 @@ export default function FleetPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <PageHeader
         title="Fleet"
         subtitle={`${filtered.length} vehicles`}
@@ -82,17 +82,17 @@ export default function FleetPage() {
       />
 
       <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 sm:items-center">
-        <input type="search" placeholder="Search name, make, model, or plate…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-72 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]" />
-        <button onClick={() => setShowRetired((v) => !v)} className={`self-start shrink-0 whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-medium border transition-colors ${showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "bg-transparent border-[#2a2f3e] text-gray-500 hover:text-gray-300"}`}>
+        <input type="search" placeholder="Search name, make, model, or plate…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-72 bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]" />
+        <button onClick={() => setShowRetired((v) => !v)} className={`self-start shrink-0 whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-medium border transition-colors ${showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "bg-transparent border-[#2C2C2E] text-gray-500 hover:text-gray-300"}`}>
           {showRetired ? "Hiding Retired" : "Show Retired"}
         </button>
       </div>
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
         {filtered.length === 0 ? (
           <p className="px-6 py-10 text-center text-gray-500 text-sm">No vehicles found</p>
         ) : (
-          <div className="divide-y divide-[#2a2f3e]">
+          <div className="divide-y divide-[#38383A]">
             {filtered.map((v) => (
               <Link
                 key={v.id}
@@ -113,7 +113,7 @@ export default function FleetPage() {
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5 truncate">
                     {v.currentDriverName ? (
-                      <span className="text-[#35B2FF]/80">Driver: {v.currentDriverName}</span>
+                      <span className="text-[#0A84FF]/80">Driver: {v.currentDriverName}</span>
                     ) : (
                       "Unassigned"
                     )}
@@ -150,7 +150,7 @@ function AddVehicleModal({ onSave, onClose }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   async function handleSave() {
     const yearNum = parseInt(year);

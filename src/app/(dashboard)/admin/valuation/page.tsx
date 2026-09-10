@@ -102,7 +102,7 @@ export default function ValuationPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
         <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -110,21 +110,21 @@ export default function ValuationPage() {
       </div>
 
       <div className="mb-5 sm:mb-6 mt-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-white">Inventory Valuation</h2>
-        <p className="text-gray-400 mt-1 text-sm">Total value based on current stock × unit cost per product</p>
+        <h1 className="ios-large-title text-white">Inventory Valuation</h1>
+        <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">Total value based on current stock × unit cost per product</p>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-4">
           <p className="text-xs text-gray-500 mb-1">Total Value</p>
           <p className="text-xl sm:text-2xl font-bold text-white">{totalValue.toLocaleString("en-US", { style: "currency", currency: "USD" })}</p>
         </div>
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-4">
           <p className="text-xs text-gray-500 mb-1">Products in Stock</p>
           <p className="text-xl sm:text-2xl font-bold text-white">{rows.length}</p>
         </div>
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-4">
           <p className="text-xs text-gray-500 mb-1">Total Units</p>
           <p className="text-xl sm:text-2xl font-bold text-white">{totalItems.toLocaleString()}</p>
         </div>
@@ -142,19 +142,19 @@ export default function ValuationPage() {
         </div>
       )}
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
         {rows.length === 0 ? (
           <p className="text-center text-gray-500 py-12 text-sm">No in-stock products found.</p>
         ) : (
           <div>
             {/* Column headers — desktop only; each row reads as a card on phones */}
-            <div className="hidden sm:grid grid-cols-12 px-6 py-3 border-b border-[#2a2f3e]">
+            <div className="hidden sm:grid grid-cols-12 px-6 py-3 border-b border-[#2C2C2E]">
               <div className="col-span-5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</div>
               <div className="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Qty</div>
               <div className="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Unit Cost</div>
               <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total Value</div>
             </div>
-            <div className="divide-y divide-[#2a2f3e]">
+            <div className="divide-y divide-[#38383A]">
               {rows.map((row) => {
                 const isExpanded = expandedRow === row.productId;
                 return (
@@ -195,7 +195,7 @@ export default function ValuationPage() {
                       </div>
                     </button>
                     {isExpanded && row.byWarehouse.length > 1 && (
-                      <div className="border-t border-[#2a2f3e] bg-[#0f1117] px-4 sm:px-6 py-2">
+                      <div className="border-t border-[#2C2C2E] bg-[#000000] px-4 sm:px-6 py-2">
                         {row.byWarehouse.map((wh) => (
                           <div key={wh.warehouseName} className="flex sm:grid sm:grid-cols-12 justify-between gap-2 py-2">
                             <div className="sm:col-span-5 text-xs text-gray-500 sm:pl-4 min-w-0 break-words">{wh.warehouseName}</div>
@@ -212,7 +212,7 @@ export default function ValuationPage() {
                 );
               })}
             </div>
-            <div className="flex sm:grid sm:grid-cols-12 justify-between px-4 sm:px-6 py-4 border-t border-[#2a2f3e] bg-[#0f1117]">
+            <div className="flex sm:grid sm:grid-cols-12 justify-between px-4 sm:px-6 py-4 border-t border-[#2C2C2E] bg-[#000000]">
               <div className="sm:col-span-5 text-sm font-semibold text-white">Total</div>
               <div className="sm:col-span-2 sm:text-right text-sm text-gray-300">{totalItems.toLocaleString()}</div>
               <div className="hidden sm:block sm:col-span-2" />

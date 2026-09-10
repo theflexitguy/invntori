@@ -103,7 +103,7 @@ export default function RequestsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 xl:p-8 w-full pb-8">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <PageHeader
         title={user?.isAdmin ? "Request Queue" : "My Requests"}
         subtitle={`${filtered.length} requests`}
@@ -118,17 +118,17 @@ export default function RequestsPage() {
       {/* Filters */}
       <div className="space-y-2.5 mb-4">
         <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar">
-          <div className="inline-flex gap-1 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-1">
+          <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[14px] p-1">
             {STATUS_TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                  tab === t ? "bg-[#35B2FF]/20 text-[#35B2FF]" : "text-gray-500 hover:text-white"
+                  tab === t ? "bg-[#0A84FF]/20 text-[#0A84FF]" : "text-gray-500 hover:text-white"
                 }`}
               >
                 {t}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-[#35B2FF]/30" : "bg-white/5"}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-[#0A84FF]/30" : "bg-white/5"}`}>
                   {counts[t]}
                 </span>
               </button>
@@ -139,7 +139,7 @@ export default function RequestsPage() {
           <select
             value={filterWarehouse}
             onChange={(e) => setFilterWarehouse(e.target.value)}
-            className="w-full sm:w-auto bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white focus:outline-none focus:border-[#35B2FF]"
+            className="w-full sm:w-auto bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white focus:outline-none focus:border-[#0A84FF]"
           >
             <option value="all">All Warehouses</option>
             {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -155,7 +155,7 @@ export default function RequestsPage() {
             const wh = warehouses.find((w) => w.id === r.warehouseID);
             const isExpanded = expanded === r.id;
             return (
-              <div key={r.id} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+              <div key={r.id} className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
                 <button
                   className="w-full px-4 sm:px-6 py-4 text-left hover:bg-white/[0.02] active:bg-white/[0.04] transition-colors"
                   onClick={() => setExpanded(isExpanded ? null : r.id!)}
@@ -193,10 +193,10 @@ export default function RequestsPage() {
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-[#2a2f3e] px-4 sm:px-6 py-4">
+                  <div className="border-t border-[#2C2C2E] px-4 sm:px-6 py-4">
                     <div className="space-y-2 mb-4">
                       {r.items?.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-[#2a2f3e] last:border-0">
+                        <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-[#2C2C2E] last:border-0">
                           <span className="text-white">{item.productName}</span>
                           <span className="text-gray-400">{item.quantity} {item.unit ?? ""}</span>
                         </div>
@@ -317,7 +317,7 @@ function SubmitRequestModal({ warehouses, companyID, onSave, onClose }: {
     finally { setSaving(false); }
   }
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   return (
     <Sheet
@@ -346,7 +346,7 @@ function SubmitRequestModal({ warehouses, companyID, onSave, onClose }: {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs text-gray-500">Items</label>
-              <button onClick={addItem} className="px-2.5 py-1.5 -mr-1 rounded-lg text-xs font-medium text-[#35B2FF] active:bg-[#35B2FF]/10 transition-colors flex items-center gap-1">
+              <button onClick={addItem} className="px-2.5 py-1.5 -mr-1 rounded-lg text-xs font-medium text-[#0A84FF] active:bg-[#0A84FF]/10 transition-colors flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 Add Item
               </button>
