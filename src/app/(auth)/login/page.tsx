@@ -47,6 +47,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("companyID", foundCompanyID);
+      setLoading(false);
       router.replace("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Login failed";

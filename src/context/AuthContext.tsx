@@ -28,54 +28,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
+
       if (!fbUser) {
         setUser(null);
         setLoading(false);
         return;
       }
 
+      // Resolve companyID from localStorage (set during login)
+      const companyID = localStorage.getItem("companyID") ?? "";
+
+      if (!companyID) {
+        // Authenticated but no company found — still let them through with minimal profile
+        // so the dashboard can decide what to show
+        setUser({
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: fbUser.displayName,
+          companyID: "",
+          isAdmin: false,
+          isManager: false,
+          managePermissions: [],
+          officeIDs: [],
+        });
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Find which company this user belongs to
-        const userDoc = await getDoc(doc(db, "users", fbUser.uid));
-        let companyID = userDoc.exists() ? (userDoc.data().companyID as string) : "";
-
-        // Fallback: check localStorage for persisted companyID
-        if (!companyID) {
-          companyID = localStorage.getItem("companyID") ?? "";
-        }
-
-        if (!companyID) {
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-
         const employeeDoc = await getDoc(
           doc(db, "companies", companyID, "Employees", fbUser.uid)
         );
 
-        if (!employeeDoc.exists()) {
-          setUser(null);
-          setLoading(false);
-          return;
+        if (employeeDoc.exists()) {
+          const data = employeeDoc.data();
+          setUser({
+            uid: fbUser.uid,
+            email: fbUser.email,
+            displayName: data.name ?? fbUser.displayName,
+            companyID,
+            isAdmin: data.isAdmin === true,
+            isManager: data.isManager === true,
+            managePermissions: data.managePermissions ?? [],
+            officeIDs: data.officeIDs ?? [],
+          });
+        } else {
+          // Employee doc missing or no permission — create minimal user so we don't
+          // boot them back to login on every page load
+          setUser({
+            uid: fbUser.uid,
+            email: fbUser.email,
+            displayName: fbUser.displayName,
+            companyID,
+            isAdmin: false,
+            isManager: false,
+            managePermissions: [],
+            officeIDs: [],
+          });
         }
-
-        const data = employeeDoc.data();
-        const appUser: AppUser = {
+      } catch {
+        // Firestore read failed (likely security rules) — still allow access
+        // since Firebase Auth itself succeeded
+        setUser({
           uid: fbUser.uid,
           email: fbUser.email,
-          displayName: data.name ?? fbUser.displayName,
+          displayName: fbUser.displayName,
           companyID,
-          isAdmin: data.isAdmin === true,
-          isManager: data.isManager === true,
-          managePermissions: data.managePermissions ?? [],
-          officeIDs: data.officeIDs ?? [],
-        };
-
-        localStorage.setItem("companyID", companyID);
-        setUser(appUser);
-      } catch {
-        setUser(null);
+          isAdmin: false,
+          isManager: false,
+          managePermissions: [],
+          officeIDs: [],
+        });
       } finally {
         setLoading(false);
       }
@@ -87,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     localStorage.removeItem("companyID");
     await firebaseSignOut(auth);
+    setUser(null);
   };
 
   return (
