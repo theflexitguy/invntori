@@ -37,7 +37,7 @@ export default function InventoryPage() {
       whs.map(async (wh) => {
         const snap = await getDocs(collection(db, "companies", cid, "warehouses", wh.id!, "inventory"));
         snap.docs.forEach((d) => {
-          allItems.push({ id: d.id, warehouseID: wh.id, warehouseName: wh.name, ...(d.data() as Omit<FirestoreInventoryItem, "id" | "warehouseID">) });
+          allItems.push({ ...d.data(), id: d.id, warehouseID: wh.id, warehouseName: wh.name } as InventoryEntry);
         });
       })
     );
@@ -74,9 +74,10 @@ export default function InventoryPage() {
     setItems((prev) =>
       prev.map((i) => i.id === item.id && i.warehouseID === item.warehouseID ? { ...i, quantity: newQty } : i)
     );
-    setDetail((prev) =>
-      prev?.id === item.id && prev?.warehouseID === item.warehouseID ? { ...prev, quantity: newQty } : prev
-    );
+    setDetail((prev) => {
+      if (!prev || prev.id !== item.id || prev.warehouseID !== item.warehouseID) return prev;
+      return { ...prev, quantity: newQty };
+    });
   }
 
   if (loading) {
@@ -777,14 +778,14 @@ function WarehousesManagerModal({
     setSaving(true);
     setFormError("");
     try {
-      const data: Record<string, string> = { name: whName.trim() };
-      if (whLocation.trim()) data.location = whLocation.trim();
+      const name = whName.trim();
+      const location = whLocation.trim() || undefined;
       if (editWarehouse?.id) {
-        await updateDoc(doc(db, "companies", companyID, "warehouses", editWarehouse.id), data);
-        setWarehouseList((prev) => prev.map((w) => w.id === editWarehouse.id ? { ...w, ...data } : w));
+        await updateDoc(doc(db, "companies", companyID, "warehouses", editWarehouse.id), { name, location });
+        setWarehouseList((prev) => prev.map((w) => w.id === editWarehouse.id ? { ...w, name, location } : w));
       } else {
-        const docRef = await addDoc(collection(db, "companies", companyID, "warehouses"), data);
-        setWarehouseList((prev) => [...prev, { id: docRef.id, name: data.name, location: data.location }].sort((a, b) => a.name.localeCompare(b.name)));
+        const docRef = await addDoc(collection(db, "companies", companyID, "warehouses"), { name, location });
+        setWarehouseList((prev) => [...prev, { id: docRef.id, name, location }].sort((a, b) => a.name.localeCompare(b.name)));
       }
       setShowForm(false);
     } catch {
