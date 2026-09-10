@@ -9,6 +9,20 @@ import { Badge } from "@/components/ui/Badge";
 import Link from "next/link";
 import type { Vehicle } from "@/lib/types";
 
+const conditionVariant: Record<string, "green" | "blue" | "yellow" | "red"> = {
+  excellent: "green",
+  good: "blue",
+  fair: "yellow",
+  poor: "red",
+};
+
+const conditionLabel: Record<string, string> = {
+  excellent: "Excellent",
+  good: "Good",
+  fair: "Fair",
+  poor: "Poor",
+};
+
 export default function FleetPage() {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -24,25 +38,30 @@ export default function FleetPage() {
   async function load() {
     if (!user?.companyID) return;
     const snap = await getDocs(collection(db, "companies", user.companyID, "vehicles"));
-    setVehicles(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Vehicle, "id">) })));
+    setVehicles(
+      snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<Vehicle, "id">) }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
     setLoading(false);
   }
 
   const filtered = useMemo(() => {
     return vehicles.filter((v) => {
       if (!showRetired && v.isRetired) return false;
-      if (search && !v.name.toLowerCase().includes(search.toLowerCase()) &&
-          !`${v.make ?? ""} ${v.model ?? ""}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!v.name.toLowerCase().includes(q) &&
+            !v.make?.toLowerCase().includes(q) &&
+            !v.model?.toLowerCase().includes(q) &&
+            !v.licensePlate?.toLowerCase().includes(q)) return false;
+      }
       return true;
     });
   }, [vehicles, search, showRetired]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner size={32} />
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
   }
 
   return (
@@ -55,57 +74,64 @@ export default function FleetPage() {
       <div className="flex gap-3 mb-6 flex-wrap items-center">
         <input
           type="search"
-          placeholder="Search vehicles…"
+          placeholder="Search by name, make, model, or plate…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-64"
+          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-72"
         />
         <button
           onClick={() => setShowRetired((v) => !v)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-            showRetired
-              ? "bg-gray-500/20 border-gray-500/40 text-gray-300"
-              : "bg-transparent border-[#2a2f3e] text-gray-500 hover:text-gray-300"
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+            showRetired ? "bg-gray-500/20 border-gray-500/40 text-gray-300" : "bg-transparent border-[#2a2f3e] text-gray-500 hover:text-gray-300"
           }`}
         >
-          {showRetired ? "Hiding retired" : "Show retired"}
+          {showRetired ? "Hiding Retired" : "Show Retired"}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.length === 0 ? (
-          <p className="col-span-full text-center text-gray-500 py-10">No vehicles found</p>
-        ) : (
-          filtered.map((v) => (
-            <Link
-              key={v.id}
-              href={`/fleet/${v.id}`}
-              className={`bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-5 hover:border-[#35B2FF]/40 transition-colors ${v.isRetired ? "opacity-50" : ""}`}
-            >
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-violet-400/10 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 17a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4zM3 10l1.5-4.5A1 1 0 015.45 5h13.1a1 1 0 01.95.68L21 10M3 10h18M3 10v7h1m14 0h1v-7" />
-                  </svg>
-                </div>
-                {v.isRetired && <Badge variant="gray">Retired</Badge>}
-              </div>
-              <p className="font-semibold text-white">{v.name}</p>
-              <p className="text-sm text-gray-400 mt-0.5">
-                {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
-              </p>
-              {v.licensePlate && (
-                <p className="text-xs text-gray-500 mt-1 font-mono">{v.licensePlate}</p>
-              )}
-              {v.currentDriverName && !v.isRetired && (
-                <div className="mt-3 pt-3 border-t border-[#2a2f3e]">
-                  <p className="text-xs text-gray-500">Driver</p>
-                  <p className="text-sm text-white mt-0.5">{v.currentDriverName}</p>
-                </div>
-              )}
-            </Link>
-          ))
-        )}
+      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[#2a2f3e]">
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Vehicle</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Year / Make / Model</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">License</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Driver</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Condition</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#2a2f3e]">
+            {filtered.length === 0 ? (
+              <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">No vehicles found</td></tr>
+            ) : (
+              filtered.map((v) => (
+                <tr key={v.id} className={`hover:bg-white/[0.02] transition-colors ${v.isRetired ? "opacity-50" : ""}`}>
+                  <td className="px-6 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/fleet/${v.id}`} className="font-medium text-white hover:text-[#35B2FF] transition-colors">
+                        {v.name}
+                      </Link>
+                      {v.isRetired && <Badge variant="gray">Retired</Badge>}
+                    </div>
+                  </td>
+                  <td className="px-6 py-3.5 text-gray-400">
+                    {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
+                  </td>
+                  <td className="px-6 py-3.5 text-gray-400 font-mono text-xs">{v.licensePlate ?? "—"}</td>
+                  <td className="px-6 py-3.5 text-gray-400">{v.currentDriverName ?? "Unassigned"}</td>
+                  <td className="px-6 py-3.5">
+                    {v.isRetired
+                      ? <Badge variant="gray">Retired</Badge>
+                      : v.condition
+                        ? <Badge variant={conditionVariant[v.condition] ?? "gray"}>{conditionLabel[v.condition] ?? v.condition}</Badge>
+                        : <span className="text-gray-600">—</span>
+                    }
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

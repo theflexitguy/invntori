@@ -177,7 +177,7 @@ export interface PurchaseOrder {
 }
 
 // ── Inventory Requests ─────────────────────────────────────────────────────
-export type RequestStatus = "pending" | "approved" | "denied" | "fulfilled" | "completed";
+export type RequestStatus = "Pending" | "Completed" | "Returned";
 
 export interface RequestedItem {
   productID?: string;
