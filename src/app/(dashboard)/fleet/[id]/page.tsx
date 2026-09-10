@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { doc, getDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/Badge";
 import Link from "next/link";
 import type { Vehicle, VehicleAssignment, VehicleMaintenance } from "@/lib/types";
 
-export default function VehicleDetailPage({ params }: { params: { id: string } }) {
+export default function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { user } = useAuth();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [assignments, setAssignments] = useState<VehicleAssignment[]>([]);
@@ -25,9 +26,9 @@ export default function VehicleDetailPage({ params }: { params: { id: string } }
     if (!user) return;
     const cid = user.companyID;
     const [vDoc, aSnap, mSnap] = await Promise.all([
-      getDoc(doc(db, "companies", cid, "Vehicles", params.id)),
-      getDocs(query(collection(db, "companies", cid, "Vehicles", params.id, "Assignments"), orderBy("startDate", "desc"))),
-      getDocs(query(collection(db, "companies", cid, "Vehicles", params.id, "Maintenance"), orderBy("scheduledDate", "desc"))),
+      getDoc(doc(db, "companies", cid, "Vehicles", id)),
+      getDocs(query(collection(db, "companies", cid, "Vehicles", id, "Assignments"), orderBy("assignedAt", "desc"))),
+      getDocs(query(collection(db, "companies", cid, "Vehicles", id, "Maintenance"), orderBy("performedAt", "desc"))),
     ]);
 
     if (vDoc.exists()) {

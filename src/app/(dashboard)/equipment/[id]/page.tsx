@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { doc, getDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -16,7 +16,8 @@ const statusVariant: Record<string, "green" | "blue" | "yellow" | "red" | "gray"
   retired: "gray",
 };
 
-export default function EquipmentDetailPage({ params }: { params: { id: string } }) {
+export default function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { user } = useAuth();
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   const [checkouts, setCheckouts] = useState<EquipmentCheckout[]>([]);
@@ -32,9 +33,9 @@ export default function EquipmentDetailPage({ params }: { params: { id: string }
     if (!user) return;
     const cid = user.companyID;
     const [eqDoc, checkSnap, repairSnap] = await Promise.all([
-      getDoc(doc(db, "companies", cid, "Equipment", params.id)),
-      getDocs(query(collection(db, "companies", cid, "Equipment", params.id, "Checkouts"), orderBy("checkoutDate", "desc"))),
-      getDocs(query(collection(db, "companies", cid, "Equipment", params.id, "Repairs"), orderBy("reportedDate", "desc"))),
+      getDoc(doc(db, "companies", cid, "Equipment", id)),
+      getDocs(query(collection(db, "companies", cid, "Equipment", id, "Checkouts"), orderBy("checkedOutAt", "desc"))),
+      getDocs(query(collection(db, "companies", cid, "Equipment", id, "Repairs"), orderBy("reportedAt", "desc"))),
     ]);
 
     if (eqDoc.exists()) {
