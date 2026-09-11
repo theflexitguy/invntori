@@ -89,7 +89,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const customFields = Object.entries(employee.customFields ?? {});
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <LargeTitle title="Employee Details" />
 
       {user?.isAdmin && (

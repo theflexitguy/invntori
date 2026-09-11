@@ -155,7 +155,7 @@ export default function AdminRequestsPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       {/* The native queue keeps its title inline and Logout in the bar */}
       <NavBarTitle>
         <span className="text-[17px] font-semibold text-white truncate">Pending Requests</span>

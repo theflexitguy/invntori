@@ -200,7 +200,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const spec = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ");
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <NavBarTitle fade>
         <span className="text-[17px] font-semibold text-white truncate">{vehicle.name}</span>
       </NavBarTitle>

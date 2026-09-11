@@ -267,7 +267,7 @@ export default function BulkEditPage() {
   if (!user?.isAdmin) return null;
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <NavBarRight>
         <NavPillButton onClick={handleApply} disabled={!canSubmit} tone="blue">
           {submitting ? "Applying…" : "Apply"}

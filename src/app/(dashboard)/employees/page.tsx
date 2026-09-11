@@ -51,7 +51,7 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       {/* A pushed screen — inline title, like the native Manage Employees view */}
       <NavBarTitle>
         <h1 className="text-[17px] font-semibold text-white truncate">Manage Employees</h1>

@@ -132,7 +132,7 @@ export default function ProductsPage() {
     (stockByProduct[id ?? ""] ?? []).reduce((sum, r) => sum + r.qty, 0);
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       {user?.isAdmin && (
         <NavBarRight>
           <NavCircleButton label="Add product" onClick={() => setShowAdd(true)}>

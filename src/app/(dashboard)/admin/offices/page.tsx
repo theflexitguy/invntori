@@ -120,7 +120,7 @@ export default function OfficesPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       {user?.isAdmin && (
         <NavBarRight>
           <NavCircleButton label="Add office" onClick={openAdd}>

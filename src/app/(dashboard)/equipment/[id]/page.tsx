@@ -213,7 +213,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
     : null;
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <Link href="/equipment" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-white transition-colors mb-3 -ml-1 py-1">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         Equipment
