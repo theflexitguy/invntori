@@ -328,6 +328,8 @@ export default function DashboardPage() {
     insightsAbortRef.current?.abort();
     const abort = new AbortController();
     insightsAbortRef.current = abort;
+    // Auto-abort if the Cloud Function hangs — prevents "Generating…" forever
+    const timeoutId = setTimeout(() => abort.abort(), 20000);
 
     setGeneratingInsights(true);
     setAiInsights(null);
@@ -412,6 +414,7 @@ export default function DashboardPage() {
         setAiInsights(null);
       }
     } finally {
+      clearTimeout(timeoutId);
       setGeneratingInsights(false);
     }
   }, [metrics, user?.companyID, rangeDays]);

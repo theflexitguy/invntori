@@ -119,7 +119,7 @@ export default function InventoryPage() {
       />
 
       {/* Warehouse + admin actions */}
-      <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar">
         <select
           value={selectedWarehouse}
           onChange={(e) => setSelectedWarehouse(e.target.value)}
@@ -194,7 +194,7 @@ export default function InventoryPage() {
                 <SlidersGlyph />
               </button>
               {categoriesOpen && (
-                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar sm:flex-wrap">
                   {categories.map((cat) => (
                     <button
                       key={cat}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useCallback } from "react";
 import {
-  doc, getDoc, collection, getDocs, query, where, orderBy,
+  doc, getDoc, collection, getDocs, query, where,
   writeBatch, updateDoc, addDoc, Timestamp, deleteField,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -39,15 +39,30 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
   const load = useCallback(async () => {
     if (!user?.companyID) return;
     const cid = user.companyID;
-    const [eqDoc, checkSnap, repairSnap] = await Promise.all([
-      getDoc(doc(db, "companies", cid, "equipment", id)),
-      getDocs(query(collection(db, "companies", cid, "equipmentCheckouts"), where("equipmentID", "==", id), orderBy("checkedOutAt", "desc"))),
-      getDocs(query(collection(db, "companies", cid, "equipmentRepairs"), where("equipmentID", "==", id), orderBy("reportedAt", "desc"))),
-    ]);
-    if (eqDoc.exists()) setEquipment({ id: eqDoc.id, ...(eqDoc.data() as Omit<Equipment, "id">) });
-    setCheckouts(checkSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<EquipmentCheckout, "id">) })));
-    setRepairs(repairSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<EquipmentRepair, "id">) })));
-    setLoading(false);
+    try {
+      // Avoid where+orderBy on different fields — composite indexes may not exist.
+      // Sort client-side instead.
+      const [eqDoc, checkSnap, repairSnap] = await Promise.all([
+        getDoc(doc(db, "companies", cid, "equipment", id)),
+        getDocs(query(collection(db, "companies", cid, "equipmentCheckouts"), where("equipmentID", "==", id))),
+        getDocs(query(collection(db, "companies", cid, "equipmentRepairs"), where("equipmentID", "==", id))),
+      ]);
+      if (eqDoc.exists()) setEquipment({ id: eqDoc.id, ...(eqDoc.data() as Omit<Equipment, "id">) });
+      setCheckouts(
+        checkSnap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<EquipmentCheckout, "id">) }))
+          .sort((a, b) => ((b.checkedOutAt as { seconds?: number })?.seconds ?? 0) - ((a.checkedOutAt as { seconds?: number })?.seconds ?? 0))
+      );
+      setRepairs(
+        repairSnap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<EquipmentRepair, "id">) }))
+          .sort((a, b) => ((b.reportedAt as { seconds?: number })?.seconds ?? 0) - ((a.reportedAt as { seconds?: number })?.seconds ?? 0))
+      );
+    } catch (err) {
+      console.error("Failed to load equipment detail:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [user, id]);
 
   useEffect(() => {
