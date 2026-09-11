@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
-import { PageHeader, HeaderButton, PlusIcon } from "@/components/ui/PageHeader";
-import type { Product } from "@/lib/types";
+import { PlusIcon } from "@/components/ui/PageHeader";
+import { NavBarRight } from "@/components/layout/NavBarSlot";
+import {
+  LargeTitle,
+  SearchField,
+  SegmentedControl,
+  Pill,
+  NavCircleButton,
+  type Tint,
+} from "@/components/ui/ios";
+import { ChevronRightIcon } from "@/components/layout/nav";
 
 type POStatus = "draft" | "submitted" | "approved" | "Pending" | "PartiallyReceived" | "Completed" | "received" | "cancelled";
 
@@ -19,6 +27,7 @@ interface PurchaseOrder {
   status: POStatus | string;
   vendorRef?: string;
   notes?: string;
+  warehouseName?: string;
   createdAt?: Date;
   expectedDate?: Date;
   totalCost?: number;
@@ -36,20 +45,33 @@ function parseDate(val: unknown): Date | undefined {
 function displayStatus(status: string): string {
   if (status === "PartiallyReceived") return "Partial";
   if (status === "Closed") return "Completed";
+  if (status === "received") return "Completed";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function statusColor(status: string): { bg: string; text: string; border: string } {
+function statusTint(status: string): Tint {
   const s = status.toLowerCase();
-  if (s === "completed" || s === "received") return { bg: "bg-green-400/15", text: "text-green-400", border: "border-green-400/20" };
-  if (s === "partiallyreceived") return { bg: "bg-blue-400/15", text: "text-[#0A84FF]", border: "border-[#0A84FF]/20" };
-  if (s === "cancelled" || s === "closed") return { bg: "bg-gray-400/15", text: "text-gray-400", border: "border-gray-400/20" };
-  if (s === "approved") return { bg: "bg-violet-400/15", text: "text-violet-400", border: "border-violet-400/20" };
-  return { bg: "bg-amber-400/15", text: "text-amber-400", border: "border-amber-400/20" };
+  if (s === "completed" || s === "received" || s === "complete") return "green";
+  if (s === "partiallyreceived") return "blue";
+  if (s === "cancelled" || s === "closed") return "gray";
+  if (s === "approved") return "purple";
+  return "orange";
 }
 
-const STATUS_TABS = ["All", "Pending", "Completed"] as const;
-type StatusTab = (typeof STATUS_TABS)[number];
+/** "August 25, 2026" — the long form the native list prints. */
+function longDate(d?: Date): string {
+  if (!d) return "";
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+const STATUS_TABS = [
+  { value: "Pending" as const, label: "Pending" },
+  { value: "Completed" as const, label: "Completed" },
+  { value: "All" as const, label: "All" },
+];
+type StatusTab = (typeof STATUS_TABS)[number]["value"];
+
+const DONE = new Set(["completed", "received", "complete"]);
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -59,11 +81,11 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
     if (!user?.companyID) return;
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function load() {
@@ -78,6 +100,7 @@ export default function OrdersPage() {
         status: raw.status ?? "Pending",
         vendorRef: raw.vendorRef ?? raw.orderNumber,
         notes: raw.notes,
+        warehouseName: raw.warehouseName,
         createdAt: parseDate(raw.createdAt),
         expectedDate: parseDate(raw.expectedDate),
         totalCost: typeof raw.totalCost === "number" ? raw.totalCost : undefined,
@@ -88,133 +111,162 @@ export default function OrdersPage() {
     setLoading(false);
   }
 
-  async function createOrder(vendorName: string, vendorRef: string, items: PurchaseOrderItem[], expectedDate: string, notes: string) {
-    if (!user?.companyID) return;
-    const cid = user.companyID;
-    const total = items.reduce((sum, i) => sum + (i.unitCost ?? 0) * i.quantity, 0);
-    const data: Record<string, unknown> = {
-      vendorName: vendorName.trim(),
-      status: "Pending",
-      items,
-      createdAt: serverTimestamp(),
-      createdByUID: user.uid,
-      createdByName: user.displayName ?? user.email ?? "",
-      ...(total > 0 ? { totalCost: total } : {}),
-      ...(vendorRef.trim() ? { vendorRef: vendorRef.trim() } : {}),
-      ...(notes.trim() ? { notes: notes.trim() } : {}),
-      ...(expectedDate ? { expectedDate: new Date(expectedDate) } : {}),
-    };
-    const docRef = await addDoc(collection(db, "companies", cid, "purchaseOrders"), data);
-    const newOrder: PurchaseOrder = { id: docRef.id, vendorName: vendorName.trim(), status: "Pending", vendorRef: vendorRef.trim() || undefined, notes: notes.trim() || undefined, items, expectedDate: expectedDate ? new Date(expectedDate) : undefined, totalCost: total > 0 ? total : undefined };
-    setOrders((prev) => [newOrder, ...prev]);
-    setShowCreate(false);
-  }
-
   async function markReceived(id: string) {
     if (!user?.companyID) return;
     setUpdating(id);
     try {
-      await updateDoc(doc(db, "companies", user.companyID, "purchaseOrders", id), { status: "received", receivedAt: serverTimestamp(), receivedBy: user.uid, receivedByName: user.displayName ?? user.email ?? "" });
-      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "received" } : o));
-    } finally { setUpdating(null); }
+      await updateDoc(doc(db, "companies", user.companyID, "purchaseOrders", id), {
+        status: "Completed",
+        receivedAt: serverTimestamp(),
+        receivedBy: user.uid,
+        receivedByName: user.displayName ?? user.email ?? "",
+      });
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: "Completed" } : o)));
+    } finally {
+      setUpdating(null);
+    }
   }
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().trim();
     return orders.filter((o) => {
-      if (tab === "Pending") { const s = o.status.toLowerCase(); if (s === "completed" || s === "received" || s === "complete" || s === "cancelled") return false; }
-      else if (tab === "Completed") { const s = o.status.toLowerCase(); if (s !== "completed" && s !== "received" && s !== "complete") return false; }
+      const s = o.status.toLowerCase();
+      if (tab === "Pending" && (DONE.has(s) || s === "cancelled")) return false;
+      if (tab === "Completed" && !DONE.has(s)) return false;
       if (!q) return true;
-      return o.vendorName.toLowerCase().includes(q) || (o.vendorRef?.toLowerCase().includes(q) ?? false) || o.items.some((i) => i.productName.toLowerCase().includes(q));
+      return (
+        o.vendorName.toLowerCase().includes(q) ||
+        (o.vendorRef?.toLowerCase().includes(q) ?? false) ||
+        longDate(o.createdAt).toLowerCase().includes(q) ||
+        o.items.some((i) => i.productName.toLowerCase().includes(q))
+      );
     });
   }, [orders, tab, search]);
-
-  const counts = useMemo(() => {
-    const pending = orders.filter((o) => { const s = o.status.toLowerCase(); return s !== "completed" && s !== "received" && s !== "complete" && s !== "cancelled"; }).length;
-    const completed = orders.filter((o) => { const s = o.status.toLowerCase(); return s === "completed" || s === "received" || s === "complete"; }).length;
-    return { All: orders.length, Pending: pending, Completed: completed };
-  }, [orders]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
-      <PageHeader
-        title="Purchase Orders"
-        subtitle={`${filtered.length} orders`}
-        actions={
-          user?.isAdmin ? (
-            <HeaderButton onClick={() => setShowCreate(true)}>
-              <PlusIcon />
-              New Order
-            </HeaderButton>
-          ) : undefined
-        }
-      />
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
+      {user?.isAdmin && (
+        <NavBarRight>
+          <NavCircleButton href="/orders/new" label="Log purchase order">
+            <PlusIcon className="w-[17px] h-[17px]" />
+          </NavCircleButton>
+        </NavBarRight>
+      )}
 
-      <div className="space-y-2.5 sm:space-y-0 sm:flex sm:gap-3 mb-4 sm:items-center">
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar">
-          <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[14px] p-1">
-            {STATUS_TABS.map((t) => (
-              <button key={t} onClick={() => setTab(t)} className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${tab === t ? "bg-[#0A84FF]/20 text-[#0A84FF]" : "text-gray-500 hover:text-white"}`}>
-                {t}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-[#0A84FF]/30" : "bg-white/5"}`}>{counts[t]}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        <input type="search" placeholder="Search vendor, item…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-64 bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]" />
+      <LargeTitle title="Purchase Orders" />
+
+      <div className="mb-3">
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by vendor, order #, item, or date"
+          shape="pill"
+        />
       </div>
 
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="text-center text-gray-500 py-12">No orders found</div>
-        ) : (
-          filtered.map((order) => {
-            const sc = statusColor(order.status);
+      <div className="mb-4">
+        <SegmentedControl value={tab} onChange={setTab} options={STATUS_TABS} />
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="text-[17px] text-[rgba(235,235,245,0.6)] py-16 text-center">No orders found.</p>
+      ) : (
+        <div>
+          {filtered.map((order, i) => {
             const isExpanded = expanded === order.id;
-            const isPending = !["completed", "received", "complete", "cancelled"].includes(order.status.toLowerCase());
+            const s = order.status.toLowerCase();
+            const isPending = !DONE.has(s) && s !== "cancelled";
             const isOverdue = order.expectedDate && order.expectedDate < new Date() && isPending;
+
             return (
-              <div key={order.id} className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
-                <button className="w-full px-4 sm:px-6 py-4 text-left hover:bg-white/[0.02] active:bg-white/[0.04] transition-colors" onClick={() => setExpanded(isExpanded ? null : order.id)}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium border ${sc.bg} ${sc.text} ${sc.border}`}>{displayStatus(order.status)}</span>
-                        {isOverdue && <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium border bg-red-400/15 text-red-400 border-red-400/20">Overdue</span>}
-                        <span className="text-white font-medium">{order.vendorName}</span>
-                        {order.vendorRef && <span className="text-xs text-gray-500 font-mono">#{order.vendorRef}</span>}
-                      </div>
-                      <div className="flex items-center gap-x-3 gap-y-1 text-xs text-gray-500 flex-wrap">
-                        {order.createdAt && <span>{order.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
-                        {order.expectedDate && <span>Expected: {order.expectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-                        <span>{order.items.length} item{order.items.length !== 1 ? "s" : ""}</span>
-                        {order.totalCost !== undefined && <span>{order.totalCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>}
-                      </div>
+              <div
+                key={order.id}
+                className={i === filtered.length - 1 ? "" : "border-b border-[#38383A]/70"}
+              >
+                <button
+                  onClick={() => setExpanded(isExpanded ? null : order.id)}
+                  className="w-full text-left py-3.5 flex items-start gap-3 active:bg-white/[0.04] transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[17px] font-semibold text-white break-words">{order.vendorName}</p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <Pill tint={statusTint(order.status)}>{displayStatus(order.status)}</Pill>
+                      {isOverdue && <Pill tint="red">Overdue</Pill>}
                     </div>
-                    <svg className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </div>
+
+                  <div className="shrink-0 text-right">
+                    <p className="text-[15px] text-white">
+                      {order.vendorRef ? `Order #${order.vendorRef}` : "No order #"}
+                    </p>
+                    <p className="text-[13px] text-[rgba(235,235,245,0.6)] mt-1.5">
+                      {longDate(order.createdAt)}
+                    </p>
+                    <p className="text-[13px] text-[rgba(235,235,245,0.6)]">
+                      {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+
+                  <ChevronRightIcon
+                    className={`w-[14px] h-[14px] text-[rgba(235,235,245,0.3)] shrink-0 mt-1.5 transition-transform ${
+                      isExpanded ? "rotate-90" : ""
+                    }`}
+                  />
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-[#2C2C2E] px-4 sm:px-6 py-4">
+                  <div className="pb-4">
                     {order.items.length > 0 ? (
-                      <div className="space-y-2 mb-3">
-                        {order.items.map((item, i) => (
-                          <div key={i} className="flex items-start justify-between text-sm py-2 border-b border-[#2C2C2E] last:border-0 gap-2">
-                            <span className="text-white min-w-0 break-words">{item.productName}</span>
-                            <div className="text-right shrink-0 ml-3">
-                              <span className="text-gray-400">{item.quantity} {item.unit ?? ""}</span>
-                              {item.unitCost !== undefined && <span className="text-gray-600 text-xs ml-2">@ {item.unitCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>}
-                            </div>
+                      <div className="bg-[#1C1C1E] rounded-[12px] px-4 py-1">
+                        {order.items.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className={`flex items-center justify-between gap-3 py-2.5 ${
+                              idx === order.items.length - 1 ? "" : "border-b border-[#38383A]/70"
+                            }`}
+                          >
+                            <span className="text-[17px] text-white min-w-0 break-words">
+                              {item.productName}
+                            </span>
+                            <span className="text-[15px] text-[rgba(235,235,245,0.6)] shrink-0">
+                              {item.quantity}
+                              {item.unit ? ` ${item.unit}` : ""}
+                              {item.unitCost !== undefined
+                                ? ` · ${item.unitCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}`
+                                : ""}
+                            </span>
                           </div>
                         ))}
                       </div>
-                    ) : <p className="text-xs text-gray-500 mb-3">No line items</p>}
-                    {order.notes && <p className="text-xs text-gray-500 mb-3">Note: {order.notes}</p>}
+                    ) : (
+                      <p className="text-[15px] text-[rgba(235,235,245,0.6)] px-1">No line items.</p>
+                    )}
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 px-1 text-[13px] text-[rgba(235,235,245,0.6)]">
+                      {order.warehouseName && <span>Into {order.warehouseName}</span>}
+                      {order.expectedDate && <span>Expected {longDate(order.expectedDate)}</span>}
+                      {order.totalCost !== undefined && (
+                        <span>
+                          Total{" "}
+                          {order.totalCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                        </span>
+                      )}
+                    </div>
+
+                    {order.notes && (
+                      <p className="text-[15px] text-[rgba(235,235,245,0.6)] mt-2 px-1 leading-snug">
+                        {order.notes}
+                      </p>
+                    )}
+
                     {user?.isAdmin && isPending && (
-                      <button onClick={() => markReceived(order.id)} disabled={updating === order.id} className="w-full sm:w-auto px-4 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors disabled:opacity-50">
+                      <button
+                        onClick={() => markReceived(order.id)}
+                        disabled={updating === order.id}
+                        className="mt-3 w-full py-3 rounded-[14px] text-[17px] font-semibold bg-[#30D158]/15 text-[#30D158] active:bg-[#30D158]/25 transition-colors disabled:opacity-50"
+                      >
                         {updating === order.id ? "Updating…" : "Mark as Received"}
                       </button>
                     )}
@@ -222,135 +274,9 @@ export default function OrdersPage() {
                 )}
               </div>
             );
-          })
-        )}
-      </div>
-
-      {showCreate && (
-        <CreateOrderModal companyID={user?.companyID ?? ""} onSave={createOrder} onClose={() => setShowCreate(false)} />
+          })}
+        </div>
       )}
     </div>
-  );
-}
-
-// ─── Create Order Modal ──────────────────────────────────────────────────────
-
-interface OrderLineItem { productName: string; quantity: number; unit: string; unitCost: string; }
-
-function CreateOrderModal({ companyID, onSave, onClose }: {
-  companyID: string;
-  onSave: (vendor: string, ref: string, items: PurchaseOrderItem[], expectedDate: string, notes: string) => Promise<void>;
-  onClose: () => void;
-}) {
-  const [vendorName, setVendorName] = useState("");
-  const [vendorRef, setVendorRef] = useState("");
-  const [expectedDate, setExpectedDate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<OrderLineItem[]>([{ productName: "", quantity: 1, unit: "", unitCost: "" }]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!companyID) return;
-    getDocs(collection(db, "companies", companyID, "products")).then((snap) => {
-      setProducts(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Product, "id">) })).filter((p) => !p.isRetired).sort((a, b) => a.name.localeCompare(b.name)));
-    });
-  }, [companyID]);
-
-  function addItem() { setItems((prev) => [...prev, { productName: "", quantity: 1, unit: "", unitCost: "" }]); }
-  function removeItem(i: number) { setItems((prev) => prev.filter((_, idx) => idx !== i)); }
-  function updateItem(i: number, field: keyof OrderLineItem, value: string | number) {
-    setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
-  }
-  function selectProduct(i: number, productName: string) {
-    const p = products.find((p) => p.name === productName);
-    setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, productName, unit: p?.unit ?? item.unit } : item));
-  }
-
-  const validItems = items.filter((i) => i.productName.trim() && i.quantity > 0);
-  const canSave = vendorName.trim() && validItems.length > 0 && !saving;
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      const mapped: PurchaseOrderItem[] = validItems.map((i) => ({
-        productName: i.productName.trim(),
-        quantity: i.quantity,
-        unit: i.unit.trim() || undefined,
-        unitCost: i.unitCost ? parseFloat(i.unitCost) : undefined,
-      }));
-      await onSave(vendorName, vendorRef, mapped, expectedDate, notes);
-    } finally { setSaving(false); }
-  }
-
-  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
-
-  return (
-    <Sheet
-      title="New Purchase Order"
-      onClose={onClose}
-      size="lg"
-      footer={
-        <SheetActions onCancel={onClose}>
-          <PrimaryButton onClick={handleSave} disabled={!canSave}>
-            {saving ? "Creating…" : "Create Order"}
-          </PrimaryButton>
-        </SheetActions>
-      }
-    >
-      <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Vendor Name *</label>
-              <input value={vendorName} onChange={(e) => setVendorName(e.target.value)} className={inputCls} placeholder="e.g. Supplier Co." />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">PO / Ref Number</label>
-              <input value={vendorRef} onChange={(e) => setVendorRef(e.target.value)} className={inputCls} placeholder="Optional" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Expected Delivery Date</label>
-            <input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} className={inputCls} />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-gray-500">Line Items *</label>
-              <button onClick={addItem} className="px-2.5 py-1.5 -mr-1 rounded-lg text-xs font-medium text-[#0A84FF] active:bg-[#0A84FF]/10 transition-colors flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                Add Item
-              </button>
-            </div>
-            <div className="space-y-2">
-              {items.map((item, index) => (
-                <div key={index} className="flex gap-2 items-start">
-                  <div className="flex-1 min-w-0">
-                    <select value={item.productName} onChange={(e) => selectProduct(index, e.target.value)} className={`${inputCls} appearance-none mb-1`}>
-                      <option value="">Select product…</option>
-                      {products.map((p) => <option key={p.id} value={p.name}>{p.name}{p.unit ? ` (${p.unit})` : ""}</option>)}
-                    </select>
-                    <div className="flex gap-1.5">
-                      <input type="number" inputMode="numeric" min="1" value={item.quantity} onChange={(e) => updateItem(index, "quantity", Math.max(1, parseInt(e.target.value) || 1))} className={inputCls} placeholder="Qty" />
-                      <input value={item.unit} onChange={(e) => updateItem(index, "unit", e.target.value)} className={inputCls} placeholder="Unit" />
-                      <input type="number" inputMode="decimal" value={item.unitCost} onChange={(e) => updateItem(index, "unitCost", e.target.value)} className={inputCls} placeholder="$/unit" />
-                    </div>
-                  </div>
-                  {items.length > 1 && (
-                    <button onClick={() => removeItem(index)} aria-label="Remove line item" className="mt-1 p-2 rounded-lg text-gray-500 hover:text-red-400 active:bg-white/5 transition-colors shrink-0">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Notes</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-20`} placeholder="Optional" />
-          </div>
-      </div>
-    </Sheet>
   );
 }

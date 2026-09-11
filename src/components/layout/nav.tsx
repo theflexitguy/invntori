@@ -315,6 +315,71 @@ export function DocIcon({ className = "w-5 h-5" }: IconProps) {
   );
 }
 
+/** clock.fill */
+export function ClockIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 2.3a9.7 9.7 0 1 0 0 19.4 9.7 9.7 0 0 0 0-19.4Zm.9 4.6v5.02l3.2 1.9a.85.85 0 0 1-.87 1.46l-3.6-2.14a.85.85 0 0 1-.42-.73V6.9a.85.85 0 0 1 1.7 0Z" />
+    </svg>
+  );
+}
+
+/** calendar */
+export function CalendarIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M7.2 2.2a.9.9 0 0 1 .9.9v1.1h7.8V3.1a.9.9 0 0 1 1.8 0v1.1h.8A2.5 2.5 0 0 1 21 6.7v1.1H3V6.7a2.5 2.5 0 0 1 2.5-2.5h.8V3.1a.9.9 0 0 1 .9-.9ZM3 9.5h18v9A2.5 2.5 0 0 1 18.5 21h-13A2.5 2.5 0 0 1 3 18.5v-9Zm4 2.4a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Zm5 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Zm5 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3ZM7 16.3a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Zm5 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Z" />
+    </svg>
+  );
+}
+
+/** trash.fill */
+export function TrashIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M9.4 2.4a1.4 1.4 0 0 0-1.4 1.4v.7H4.6a.9.9 0 0 0 0 1.8h14.8a.9.9 0 0 0 0-1.8H16v-.7a1.4 1.4 0 0 0-1.4-1.4H9.4Zm.4 2.1v-.4h4.4v.4H9.8Z" />
+      <path d="M5.9 8.1h12.2l-.76 11.1a2.5 2.5 0 0 1-2.5 2.33H9.16a2.5 2.5 0 0 1-2.5-2.33L5.9 8.1Zm3.6 2.3a.8.8 0 0 0-.8.85l.4 7a.8.8 0 1 0 1.6-.1l-.4-7a.8.8 0 0 0-.8-.75Zm5 0a.8.8 0 0 0-.8.75l-.4 7a.8.8 0 1 0 1.6.1l.4-7a.8.8 0 0 0-.8-.85Z" />
+    </svg>
+  );
+}
+
+/** plus.circle.fill */
+export function PlusCircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 2.3a9.7 9.7 0 1 0 0 19.4 9.7 9.7 0 0 0 0-19.4Zm.95 5.35v3.4h3.4a.95.95 0 0 1 0 1.9h-3.4v3.4a.95.95 0 0 1-1.9 0v-3.4h-3.4a.95.95 0 0 1 0-1.9h3.4v-3.4a.95.95 0 0 1 1.9 0Z" />
+    </svg>
+  );
+}
+
+/** hourglass */
+export function HourglassIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M6.6 2.4h10.8a.9.9 0 0 1 0 1.8h-.45v1.06c0 1.5-.66 2.93-1.8 3.9L13.36 12l1.79 2.84c1.14.97 1.8 2.4 1.8 3.9v1.06h.45a.9.9 0 0 1 0 1.8H6.6a.9.9 0 0 1 0-1.8h.45V18.74c0-1.5.66-2.93 1.8-3.9L10.64 12 8.85 9.16a5.14 5.14 0 0 1-1.8-3.9V4.2H6.6a.9.9 0 0 1 0-1.8Zm2.25 1.8v1.06c0 .38.05.75.16 1.1h6.0c.1-.35.15-.72.15-1.1V4.2H8.85Zm3.15 9.5-1.96 2.6a3.34 3.34 0 0 0-.99 2.44v1.06h5.9V18.74c0-.92-.36-1.79-1-2.44L12 13.7Z" />
+    </svg>
+  );
+}
+
+/** square.and.pencil */
+export function PencilSquareIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M5.6 4.3h5.1a.9.9 0 0 1 0 1.8H5.8c-.55 0-1 .45-1 1v11c0 .55.45 1 1 1h11c.55 0 1-.45 1-1v-4.9a.9.9 0 0 1 1.8 0v5.1a2.6 2.6 0 0 1-2.6 2.6H5.6A2.6 2.6 0 0 1 3 18.3V6.9a2.6 2.6 0 0 1 2.6-2.6Z" />
+      <path d="m18.75 2.55 2.7 2.7-7.4 7.4-3.35.65a.55.55 0 0 1-.65-.65l.65-3.35 8.05-6.75Z" />
+    </svg>
+  );
+}
+
+/** chevron.up.chevron.down — the native inline picker affordance */
+export function UpDownChevronIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="m8 10 4-4 4 4M8 14l4 4 4-4" />
+    </svg>
+  );
+}
+
 /* Outline utility glyphs */
 
 export function ChevronRightIcon({ className = "w-4 h-4" }: IconProps) {
@@ -449,6 +514,7 @@ const TITLES: [string, string][] = [
   ["/chat", "Ask invntori"],
   ["/account", "Account"],
   ["/employees", "Employees"],
+  ["/orders/new", "Log Purchase Order"],
   ["/orders", "Purchase Orders"],
   ["/fleet", "Fleet"],
   ["/admin/offices", "Offices"],
@@ -459,7 +525,7 @@ const TITLES: [string, string][] = [
   ["/admin/products", "Products"],
   ["/admin/detail-fields", "Detail Fields"],
   ["/admin/requests", "Pending Requests"],
-  ["/admin/bulk-edit", "Manual Adjustment"],
+  ["/admin/bulk-edit", "Bulk Inventory Edit"],
   ["/admin/equipment-repairs", "Equipment Repairs"],
   ["/admin/valuation", "Inventory Valuation"],
   ["/admin", "Admin"],

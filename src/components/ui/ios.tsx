@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
-import { ChevronRightIcon, ChevronDownIcon } from "@/components/layout/nav";
+import { ChevronRightIcon, ChevronDownIcon, UpDownChevronIcon } from "@/components/layout/nav";
 
 /* ──────────────────────────────────────────────────────────────────────────
    Building blocks that mirror the native app's UIKit vocabulary: large
@@ -524,4 +524,162 @@ function InfoGlyph() {
       <circle cx="12" cy="7.9" r="1.05" fill="currentColor" stroke="none" />
     </svg>
   );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Segmented control, picker rows and nav-bar pills — the vocabulary the
+   native Bulk Edit, Purchase Orders and Log Purchase Order screens use.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** UISegmentedControl: a filled selected segment on a recessed track. */
+export function SegmentedControl<T extends string>({
+  value,
+  onChange,
+  options,
+  size = "md",
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: ReactNode }[];
+  size?: "sm" | "md";
+}) {
+  return (
+    <div
+      role="tablist"
+      className={`flex w-full bg-[#1C1C1E] rounded-[9px] p-[2px] ${size === "sm" ? "gap-[2px]" : "gap-[2px]"}`}
+    >
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            role="tab"
+            aria-selected={on}
+            onClick={() => onChange(o.value)}
+            className={`flex-1 min-w-0 rounded-[7px] transition-colors truncate ${
+              size === "sm" ? "py-1.5 text-[13px]" : "py-2 text-[15px]"
+            } ${
+              on
+                ? "bg-[#636366] text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
+                : "text-[rgba(235,235,245,0.6)] font-medium active:bg-white/[0.04]"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Inline picker row: white label, blue value, up/down chevron — the native
+ * wheel picker collapsed into a list row. A transparent native <select> sits
+ * on top so the platform's own picker opens on tap.
+ */
+export function PickerRow({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  last,
+}: {
+  label: ReactNode;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  last?: boolean;
+}) {
+  const current = options.find((o) => o.value === value);
+  return (
+    <div className="relative pl-4">
+      <div
+        className={`flex items-center gap-3 pr-4 py-3.5 ${
+          last ? "" : "border-b border-[#38383A]/70"
+        }`}
+      >
+        <span className="text-[17px] text-white flex-1 min-w-0 truncate">{label}</span>
+        <span className="text-[17px] text-[#0A84FF] truncate max-w-[55%]">
+          {current?.label ?? placeholder ?? "Select"}
+        </span>
+        <UpDownChevronIcon className="w-[15px] h-[15px] text-[#0A84FF] shrink-0" />
+      </div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={typeof label === "string" ? label : undefined}
+        className="absolute inset-0 w-full h-full opacity-0 appearance-none cursor-pointer"
+      >
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Capsule button that lives in the nav bar (Apply, Save, Logout). */
+export function NavPillButton({
+  onClick,
+  children,
+  disabled,
+  tone = "blue",
+}: {
+  onClick: () => void;
+  children: ReactNode;
+  disabled?: boolean;
+  tone?: "blue" | "white" | "red";
+}) {
+  const toneCls =
+    tone === "white" ? "text-white font-semibold" : tone === "red" ? "text-[#FF453A]" : "text-[#0A84FF]";
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`bg-[#1C1C1E] rounded-full px-4 py-2 text-[15px] font-medium active:bg-[#2C2C2E] transition-colors disabled:opacity-40 ${toneCls}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Plain-background list row with an inset hairline — the native pattern for
+ * Bulk Edit items, the request queue and the purchase-order list, where rows
+ * sit directly on the black background rather than inside a grouped card.
+ */
+export function PlainRow({
+  children,
+  onClick,
+  href,
+  last,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  href?: string;
+  last?: boolean;
+}) {
+  const cls = `w-full text-left py-3.5 ${
+    last ? "" : "border-b border-[#38383A]/70"
+  } ${onClick || href ? "active:bg-white/[0.04] transition-colors" : ""}`;
+  if (href) {
+    return (
+      <Link href={href} className={`block ${cls}`}>
+        {children}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button onClick={onClick} className={cls}>
+        {children}
+      </button>
+    );
+  }
+  return <div className={cls}>{children}</div>;
 }

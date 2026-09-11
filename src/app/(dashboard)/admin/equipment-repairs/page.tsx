@@ -1,18 +1,24 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import {
-  collection,
-  getDocs,
-  updateDoc,
-  doc,
-  Timestamp,
-} from "firebase/firestore";
+import { collection, getDocs, updateDoc, doc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { NavBarRight } from "@/components/layout/NavBarSlot";
+import { Sheet } from "@/components/ui/Sheet";
+import {
+  LargeTitle,
+  Group,
+  Pill,
+  SegmentedControl,
+  NavCircleButton,
+  fieldCls,
+  FieldLabel,
+  type Tint,
+} from "@/components/ui/ios";
+import { FilterCircleIcon, PersonIcon, ClockIcon } from "@/components/layout/nav";
 import type { Equipment, EquipmentRepair } from "@/lib/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -42,79 +48,41 @@ function formatDate(value: Parameters<typeof parseFirestoreDate>[0]): string {
 function formatDateTime(value: Parameters<typeof parseFirestoreDate>[0]): string {
   const d = parseFirestoreDate(value);
   if (!d) return "—";
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return `${formatDate(value)} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
 }
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Status ──────────────────────────────────────────────────────────────────
 
 type FilterTab = "open" | "all" | "resolved";
 
 const OPEN_STATUSES = new Set(["reported", "approved", "inProgress"]);
 const RESOLVED_STATUSES = new Set(["completed", "rejected"]);
 
-// ── Status config ─────────────────────────────────────────────────────────────
-
-interface StatusConfig {
-  label: string;
-  pill: string;
-  glow: string;
-  dot: string;
-}
-
-const STATUS_CONFIG: Record<string, StatusConfig> = {
-  reported: {
-    label: "Reported",
-    pill: "bg-amber-500/15 text-amber-400 border border-amber-500/30",
-    glow: "shadow-[0_0_8px_rgba(245,158,11,0.25)]",
-    dot: "bg-amber-400",
-  },
-  approved: {
-    label: "Approved",
-    pill: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
-    glow: "shadow-[0_0_8px_rgba(59,130,246,0.25)]",
-    dot: "bg-blue-400",
-  },
-  inProgress: {
-    label: "In Progress",
-    pill: "bg-orange-500/15 text-orange-400 border border-orange-500/30",
-    glow: "shadow-[0_0_8px_rgba(249,115,22,0.25)]",
-    dot: "bg-orange-400",
-  },
-  completed: {
-    label: "Completed",
-    pill: "bg-green-500/15 text-green-400 border border-green-500/30",
-    glow: "shadow-[0_0_8px_rgba(34,197,94,0.25)]",
-    dot: "bg-green-400",
-  },
-  rejected: {
-    label: "Rejected",
-    pill: "bg-gray-500/15 text-gray-400 border border-gray-500/30",
-    glow: "",
-    dot: "bg-gray-400",
-  },
+const STATUS_LABEL: Record<string, string> = {
+  reported: "Reported",
+  approved: "Approved",
+  inProgress: "In Progress",
+  completed: "Completed",
+  rejected: "Rejected",
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.reported;
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill} ${cfg.glow}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
-  );
-}
+const STATUS_TINT: Record<string, Tint> = {
+  reported: "red",
+  approved: "blue",
+  inProgress: "orange",
+  completed: "green",
+  rejected: "gray",
+};
 
-// ── Rejection modal ───────────────────────────────────────────────────────────
+const FILTER_TABS: { value: FilterTab; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "all", label: "All" },
+  { value: "resolved", label: "Resolved" },
+];
 
-function RejectModal({
+// ── Rejection sheet ─────────────────────────────────────────────────────────
+
+function RejectSheet({
   repair,
   onConfirm,
   onClose,
@@ -138,71 +106,35 @@ function RejectModal({
       await onConfirm(note.trim());
     } catch {
       setError("Failed to reject. Please try again.");
-    } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade"
-      onClick={onClose}
-    >
-      <div
-        className="animate-sheet bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-md sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+    <Sheet title="Reject Repair Request" onClose={onClose} size="sm">
+      <p className="text-[15px] text-[rgba(235,235,245,0.6)] mb-4">{repair.equipmentName}</p>
+      <FieldLabel>Response Note</FieldLabel>
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Why is this request being rejected?"
+        rows={4}
+        className={`${fieldCls} resize-none`}
+        autoFocus
+      />
+      {error && <p className="text-[15px] text-[#FF453A] mt-2">{error}</p>}
+      <button
+        onClick={handleConfirm}
+        disabled={!note.trim() || saving}
+        className="mt-4 w-full py-3 rounded-[14px] text-[17px] font-semibold bg-[#FF453A]/15 text-[#FF453A] active:bg-[#FF453A]/25 transition-colors disabled:opacity-40"
       >
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="font-semibold text-white text-lg">Reject Repair Request</h3>
-            <p className="text-gray-400 text-sm mt-0.5">{repair.equipmentName}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-white transition-colors mt-0.5"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="mb-5">
-          <label className="block text-xs font-medium text-gray-400 mb-2">
-            Response Note <span className="text-red-400">*</span>
-          </label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Explain why this repair request is being rejected…"
-            rows={4}
-            className="w-full bg-[#000000] border border-[#2C2C2E] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500/60 resize-none transition-colors"
-            autoFocus
-          />
-          {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm border border-[#2C2C2E] text-gray-400 hover:text-white hover:border-[#3A3A3C] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={!note.trim() || saving}
-            className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? "Rejecting…" : "Reject Request"}
-          </button>
-        </div>
-      </div>
-    </div>
+        {saving ? "Rejecting…" : "Reject Request"}
+      </button>
+    </Sheet>
   );
 }
 
-// ── Repair card ───────────────────────────────────────────────────────────────
+// ── Repair card ─────────────────────────────────────────────────────────────
 
 function RepairCard({
   repair,
@@ -220,235 +152,113 @@ function RepairCard({
   const [expanded, setExpanded] = useState(false);
   const [actioning, setActioning] = useState<"approve" | "complete" | null>(null);
 
-  const isOpen = OPEN_STATUSES.has(repair.status);
-  const isResolved = RESOLVED_STATUSES.has(repair.status);
-
-  const descTruncated =
-    !expanded && repair.description.length > 120
-      ? repair.description.slice(0, 120) + "…"
-      : repair.description;
-
-  async function handleApprove() {
-    setActioning("approve");
+  async function run(kind: "approve" | "complete", fn: () => Promise<void>) {
+    setActioning(kind);
     try {
-      await onApprove();
-    } finally {
-      setActioning(null);
-    }
-  }
-
-  async function handleComplete() {
-    setActioning("complete");
-    try {
-      await onComplete();
+      await fn();
     } finally {
       setActioning(null);
     }
   }
 
   return (
-    <div
-      className={`bg-[#1C1C1E] border rounded-2xl overflow-hidden transition-all duration-200 ${
-        isOpen
-          ? "border-[#2C2C2E] hover:border-[#0A84FF]/30"
-          : "border-[#2C2C2E] opacity-75 hover:opacity-90"
-      }`}
-    >
-      {/* Card header */}
-      <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
-              <h3 className="font-semibold text-white text-base leading-tight break-words">
-                {repair.equipmentName}
-              </h3>
-              {equipment?.category && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 shrink-0">
-                  {equipment.category}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-wrap">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>Reported by {repair.reportedByName}</span>
-              <span className="text-gray-600">·</span>
-              <span>{formatDate(repair.reportedAt)}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <StatusBadge status={repair.status} />
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                expanded
-                  ? "bg-[#0A84FF]/15 text-[#0A84FF]"
-                  : "bg-white/5 text-gray-500 hover:text-white hover:bg-white/10"
-              }`}
-              aria-label={expanded ? "Collapse" : "Expand"}
-            >
-              <svg
-                className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
+    <Group className={`p-4 ${RESOLVED_STATUSES.has(repair.status) ? "opacity-70" : ""}`}>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full text-left active:opacity-70 transition-opacity"
+      >
+        <div className="flex items-start gap-3">
+          <h3 className="flex-1 min-w-0 text-[17px] font-semibold text-white break-words leading-snug">
+            {repair.equipmentName}
+          </h3>
+          <Pill tint={STATUS_TINT[repair.status] ?? "gray"}>
+            {STATUS_LABEL[repair.status] ?? repair.status}
+          </Pill>
         </div>
 
-        {/* Description preview */}
-        <p className="text-sm text-gray-400 mt-3 leading-relaxed">{descTruncated}</p>
-      </div>
+        <p className="text-[17px] text-white mt-2 leading-snug break-words">{repair.description}</p>
 
-      {/* Expanded panel */}
+        <div className="flex items-center gap-3 mt-3">
+          <span className="flex items-center gap-1.5 min-w-0 flex-1">
+            <PersonIcon className="w-[15px] h-[15px] text-[rgba(235,235,245,0.6)] shrink-0" />
+            <span className="text-[15px] text-[rgba(235,235,245,0.6)] truncate">
+              {repair.reportedByName}
+            </span>
+          </span>
+          <span className="text-[15px] text-[rgba(235,235,245,0.6)] shrink-0">
+            {formatDate(repair.reportedAt)}
+          </span>
+        </div>
+      </button>
+
       {expanded && (
-        <div className="border-t border-[#2C2C2E] bg-[#2C2C2E] px-4 sm:px-5 py-5 space-y-4">
-          {/* Full description */}
-          {repair.description.length > 120 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                Full Description
-              </p>
-              <p className="text-sm text-gray-300 leading-relaxed">{repair.description}</p>
-            </div>
+        <div className="mt-4 pt-4 border-t border-[#38383A]/70 space-y-3">
+          {equipment?.category && (
+            <p className="text-[15px] text-[rgba(235,235,245,0.6)]">
+              Category · {equipment.category}
+            </p>
           )}
 
-          {/* Metadata grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <div>
-              <p className="text-xs text-gray-600 mb-0.5">Reported</p>
-              <p className="text-gray-300">{formatDateTime(repair.reportedAt)}</p>
-            </div>
-            {repair.reviewedAt && (
-              <div>
-                <p className="text-xs text-gray-600 mb-0.5">Reviewed</p>
-                <p className="text-gray-300">{formatDateTime(repair.reviewedAt)}</p>
-              </div>
-            )}
-            {repair.reviewedByName && (
-              <div>
-                <p className="text-xs text-gray-600 mb-0.5">Reviewed by</p>
-                <p className="text-gray-300">{repair.reviewedByName}</p>
-              </div>
-            )}
-            {repair.resolvedAt && (
-              <div>
-                <p className="text-xs text-gray-600 mb-0.5">Resolved</p>
-                <p className="text-gray-300">{formatDateTime(repair.resolvedAt)}</p>
-              </div>
-            )}
+          <div className="flex items-center gap-1.5">
+            <ClockIcon className="w-[14px] h-[14px] text-[rgba(235,235,245,0.6)]" />
+            <span className="text-[15px] text-[rgba(235,235,245,0.6)]">
+              Reported {formatDateTime(repair.reportedAt)}
+            </span>
           </div>
 
-          {/* Response note */}
+          {repair.reviewedByName && (
+            <p className="text-[15px] text-[rgba(235,235,245,0.6)]">
+              Reviewed by {repair.reviewedByName}
+              {repair.reviewedAt ? ` · ${formatDate(repair.reviewedAt)}` : ""}
+            </p>
+          )}
+          {repair.resolvedAt && (
+            <p className="text-[15px] text-[rgba(235,235,245,0.6)]">
+              Resolved {formatDateTime(repair.resolvedAt)}
+            </p>
+          )}
           {repair.responseNote && (
-            <div className="bg-[#000000] border border-[#2C2C2E] rounded-xl p-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                Admin Response
-              </p>
-              <p className="text-sm text-gray-300 leading-relaxed">{repair.responseNote}</p>
+            <div className="bg-[#2C2C2E] rounded-[10px] px-4 py-3">
+              <p className="text-[13px] text-[rgba(235,235,245,0.6)] mb-1">Admin response</p>
+              <p className="text-[15px] text-white leading-snug">{repair.responseNote}</p>
             </div>
           )}
 
-          {/* Action buttons */}
           {repair.status === "reported" && (
             <div className="flex gap-3 pt-1">
               <button
-                onClick={handleApprove}
+                onClick={() => run("approve", onApprove)}
                 disabled={actioning !== null}
-                className="flex-1 py-3 sm:py-2.5 rounded-xl text-sm font-semibold bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/30 hover:bg-[#0A84FF]/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-[14px] text-[17px] font-semibold bg-[#0A84FF]/15 text-[#0A84FF] active:bg-[#0A84FF]/25 transition-colors disabled:opacity-40"
               >
-                {actioning === "approve" ? (
-                  <Spinner size={14} />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
                 {actioning === "approve" ? "Approving…" : "Approve"}
               </button>
               <button
                 onClick={onReject}
                 disabled={actioning !== null}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-[14px] text-[17px] font-semibold bg-[#FF453A]/15 text-[#FF453A] active:bg-[#FF453A]/25 transition-colors disabled:opacity-40"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
                 Reject
               </button>
             </div>
           )}
 
           {(repair.status === "approved" || repair.status === "inProgress") && (
-            <div className="pt-1">
-              <button
-                onClick={handleComplete}
-                disabled={actioning !== null}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {actioning === "complete" ? (
-                  <Spinner size={14} />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
-                {actioning === "complete" ? "Marking Complete…" : "Mark as Completed"}
-              </button>
-            </div>
-          )}
-
-          {isResolved && !repair.responseNote && !repair.reviewedByName && (
-            <p className="text-xs text-gray-600 italic pt-1">No additional notes recorded.</p>
+            <button
+              onClick={() => run("complete", onComplete)}
+              disabled={actioning !== null}
+              className="w-full py-3 rounded-[14px] text-[17px] font-semibold bg-[#30D158]/15 text-[#30D158] active:bg-[#30D158]/25 transition-colors disabled:opacity-40"
+            >
+              {actioning === "complete" ? "Marking Complete…" : "Mark as Completed"}
+            </button>
           )}
         </div>
       )}
-    </div>
+    </Group>
   );
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-function EmptyState({ tab }: { tab: FilterTab }) {
-  const messages: Record<FilterTab, { icon: string; title: string; body: string }> = {
-    open: {
-      icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
-      title: "No open repairs",
-      body: "All equipment is in good shape. Open repairs will appear here when reported.",
-    },
-    all: {
-      icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z",
-      title: "No repair records",
-      body: "Equipment repair records will appear here once submitted by your team.",
-    },
-    resolved: {
-      icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4",
-      title: "No resolved repairs",
-      body: "Completed and rejected repair requests will be archived here.",
-    },
-  };
-
-  const { icon, title, body } = messages[tab];
-
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-[#1C1C1E] border border-[#2C2C2E] flex items-center justify-center mb-4">
-        <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} />
-        </svg>
-      </div>
-      <p className="text-white font-semibold mb-1">{title}</p>
-      <p className="text-gray-500 text-sm max-w-xs">{body}</p>
-    </div>
-  );
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Page ────────────────────────────────────────────────────────────────────
 
 export default function EquipmentRepairsPage() {
   const { user } = useAuth();
@@ -458,13 +268,11 @@ export default function EquipmentRepairsPage() {
   const [equipmentMap, setEquipmentMap] = useState<Map<string, Equipment>>(new Map());
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("open");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<EquipmentRepair | null>(null);
 
-  // Admin guard
   useEffect(() => {
-    if (user && !user.isAdmin) {
-      router.replace("/dashboard");
-    }
+    if (user && !user.isAdmin) router.replace("/dashboard");
   }, [user, router]);
 
   const load = useCallback(async () => {
@@ -481,7 +289,7 @@ export default function EquipmentRepairsPage() {
       ...(d.data() as Omit<EquipmentRepair, "id">),
     }));
 
-    // Sort: open first, then by reportedAt descending
+    // Open first, then newest reported
     repairList.sort((a, b) => {
       const aOpen = OPEN_STATUSES.has(a.status) ? 0 : 1;
       const bOpen = OPEN_STATUSES.has(b.status) ? 0 : 1;
@@ -505,21 +313,17 @@ export default function EquipmentRepairsPage() {
     load();
   }, [load]);
 
-  // Filtered list
-  const filtered = useMemo(() => {
-    return repairs.filter((r) => {
-      if (activeTab === "open") return OPEN_STATUSES.has(r.status);
-      if (activeTab === "resolved") return RESOLVED_STATUSES.has(r.status);
-      return true;
-    });
-  }, [repairs, activeTab]);
-
-  const openCount = useMemo(
-    () => repairs.filter((r) => OPEN_STATUSES.has(r.status)).length,
-    [repairs]
+  const filtered = useMemo(
+    () =>
+      repairs.filter((r) => {
+        if (activeTab === "open") return OPEN_STATUSES.has(r.status);
+        if (activeTab === "resolved") return RESOLVED_STATUSES.has(r.status);
+        return true;
+      }),
+    [repairs, activeTab]
   );
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────────────
 
   async function handleApprove(repair: EquipmentRepair) {
     if (!user?.companyID || !repair.id) return;
@@ -533,7 +337,6 @@ export default function EquipmentRepairsPage() {
       reviewedByName,
     });
 
-    // Set equipment status to inRepair if not already
     const equip = equipmentMap.get(repair.equipmentID);
     if (equip && equip.status !== "inRepair" && repair.equipmentID) {
       await updateDoc(doc(db, "companies", cid, "equipment", repair.equipmentID), {
@@ -549,9 +352,7 @@ export default function EquipmentRepairsPage() {
 
     setRepairs((prev) =>
       prev.map((r) =>
-        r.id === repair.id
-          ? { ...r, status: "approved", reviewedAt: now, reviewedByName }
-          : r
+        r.id === repair.id ? { ...r, status: "approved", reviewedAt: now, reviewedByName } : r
       )
     );
   }
@@ -569,16 +370,16 @@ export default function EquipmentRepairsPage() {
       responseNote,
     });
 
-    // If equipment is inRepair and no other open repairs exist, set back to available
+    // Free the equipment again once nothing else is outstanding against it
     const equip = equipmentMap.get(repair.equipmentID);
     if (equip?.status === "inRepair" && repair.equipmentID) {
-      const otherOpenRepairs = repairs.filter(
+      const otherOpen = repairs.filter(
         (r) =>
           r.id !== repair.id &&
           r.equipmentID === repair.equipmentID &&
           OPEN_STATUSES.has(r.status)
       );
-      if (otherOpenRepairs.length === 0) {
+      if (otherOpen.length === 0) {
         await updateDoc(doc(db, "companies", cid, "equipment", repair.equipmentID), {
           status: "available",
         });
@@ -611,7 +412,6 @@ export default function EquipmentRepairsPage() {
       resolvedAt: now,
     });
 
-    // Set equipment status back to available
     if (repair.equipmentID) {
       await updateDoc(doc(db, "companies", cid, "equipment", repair.equipmentID), {
         status: "available",
@@ -625,13 +425,9 @@ export default function EquipmentRepairsPage() {
     }
 
     setRepairs((prev) =>
-      prev.map((r) =>
-        r.id === repair.id ? { ...r, status: "completed", resolvedAt: now } : r
-      )
+      prev.map((r) => (r.id === repair.id ? { ...r, status: "completed", resolvedAt: now } : r))
     );
   }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   if (!user?.isAdmin) return null;
 
@@ -643,90 +439,30 @@ export default function EquipmentRepairsPage() {
     );
   }
 
-  const tabs: { id: FilterTab; label: string; count?: number }[] = [
-    { id: "open", label: "Open", count: openCount },
-    { id: "all", label: "All", count: repairs.length },
-    { id: "resolved", label: "Resolved", count: repairs.filter((r) => RESOLVED_STATUSES.has(r.status)).length },
-  ];
-
   return (
     <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 mb-1">
-        <Link
-          href="/admin"
-          className="text-gray-500 hover:text-white transition-colors text-sm"
+      <NavBarRight>
+        <NavCircleButton
+          label={filtersOpen ? "Hide filters" : "Show filters"}
+          onClick={() => setFiltersOpen((v) => !v)}
+          tint={activeTab === "open" ? "white" : "blue"}
         >
-          Admin
-        </Link>
-        <svg
-          className="w-3 h-3 text-gray-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-        <span className="text-sm text-white">Equipment Repairs</span>
-      </div>
+          <FilterCircleIcon className="w-[22px] h-[22px]" />
+        </NavCircleButton>
+      </NavBarRight>
 
-      {/* Header */}
-      <div className="mt-4 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="ios-large-title text-white">Equipment Repairs</h1>
-            <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">
-              {openCount > 0 ? (
-                <>
-                  <span className="text-amber-400 font-medium">{openCount}</span>
-                  {" open repair"}{openCount !== 1 ? "s" : ""} requiring attention
-                </>
-              ) : (
-                "No open repairs — all clear"
-              )}
-            </p>
-          </div>
+      <LargeTitle title="Equipment Repairs" />
 
-          {openCount > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-xs font-semibold text-amber-400">{openCount} Open</span>
-            </div>
-          )}
+      {filtersOpen && (
+        <div className="mb-4">
+          <SegmentedControl value={activeTab} onChange={setActiveTab} options={FILTER_TABS} />
         </div>
-      </div>
+      )}
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 mb-4 sm:mb-5 bg-[#1C1C1E] rounded-[14px] p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-              activeTab === tab.id
-                ? "bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/25 shadow-sm"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            {tab.label}
-            {tab.count !== undefined && tab.count > 0 && (
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === tab.id
-                    ? "bg-[#0A84FF]/20 text-[#0A84FF]"
-                    : "bg-white/5 text-gray-500"
-                }`}
-              >
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Repair list */}
       {filtered.length === 0 ? (
-        <EmptyState tab={activeTab} />
+        <p className="text-[17px] text-[rgba(235,235,245,0.6)] py-16 text-center">
+          {activeTab === "open" ? "No open repairs." : "No repair records."}
+        </p>
       ) : (
         <div className="space-y-3">
           {filtered.map((repair) => (
@@ -742,9 +478,8 @@ export default function EquipmentRepairsPage() {
         </div>
       )}
 
-      {/* Rejection modal */}
       {rejectTarget && (
-        <RejectModal
+        <RejectSheet
           repair={rejectTarget}
           onConfirm={(note) => handleReject(rejectTarget, note)}
           onClose={() => setRejectTarget(null)}

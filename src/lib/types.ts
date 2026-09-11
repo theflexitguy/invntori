@@ -206,6 +206,12 @@ export interface PurchaseOrder {
   createdAt?: Timestamp;
   notes?: string;
   totalCost?: number;
+  /** Order reference printed by the vendor. */
+  vendorRef?: string;
+  /** Destination the stock is received into. */
+  warehouseID?: string;
+  warehouseName?: string;
+  expectedDate?: Timestamp;
 }
 
 // ── Inventory Requests ─────────────────────────────────────────────────────
