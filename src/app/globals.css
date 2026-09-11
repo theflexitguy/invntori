@@ -145,6 +145,23 @@ textarea {
   box-shadow: inset 0 -0.5px 0 0 var(--separator);
 }
 
+/* A page-supplied inline nav title replaces the fade-in route title */
+#navbar-slot-title:not(:empty) + h1 {
+  display: none;
+}
+
+/* A page-supplied title marked `fade` behaves like the system one: it appears
+   only once the large title has scrolled out of the way. */
+.navbar-title-fade {
+  transition: opacity 200ms ease;
+}
+[data-navbar-scrolled="false"] .navbar-title-fade {
+  opacity: 0;
+}
+[data-navbar-scrolled="true"] .navbar-title-fade {
+  opacity: 1;
+}
+
 /* Bottom-sheet entrance (mobile modals) */
 @keyframes sheet-up {
   from {

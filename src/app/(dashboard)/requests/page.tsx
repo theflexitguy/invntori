@@ -6,14 +6,27 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
-import { PageHeader, HeaderButton, PlusIcon } from "@/components/ui/PageHeader";
+import { PlusIcon } from "@/components/ui/PageHeader";
+import {
+  LargeTitle, TextAction, SelectRow, BigButton, NavCircleButton,
+} from "@/components/ui/ios";
+import { NavBarLeft, NavBarRight } from "@/components/layout/NavBarSlot";
+import { ChevronDownIcon, PersonCircleIcon } from "@/components/layout/nav";
 import type { InventoryRequest, Warehouse, Product } from "@/lib/types";
+
+const DATE_RANGES = [
+  { key: "7", label: "Last 7 Days" },
+  { key: "30", label: "Last 30 Days" },
+  { key: "90", label: "Last 90 Days" },
+  { key: "all", label: "All Time" },
+] as const;
+type DateRange = (typeof DATE_RANGES)[number]["key"];
 
 const STATUS_TABS = ["All", "Pending", "Completed", "Returned"] as const;
 type StatusTab = (typeof STATUS_TABS)[number];
 
 export default function RequestsPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [requests, setRequests] = useState<InventoryRequest[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [tab, setTab] = useState<StatusTab>("Pending");
@@ -22,6 +35,9 @@ export default function RequestsPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showSubmit, setShowSubmit] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filterProduct, setFilterProduct] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange>("all");
 
   useEffect(() => {
     if (!user?.companyID) return;
@@ -81,14 +97,36 @@ export default function RequestsPage() {
     setShowSubmit(false);
   }
 
+  /** Distinct product names across visible requests, for the Product filter. */
+  const productNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of requests) {
+      if (!user?.isAdmin && r.submittedByUID !== user?.uid) continue;
+      for (const item of r.items ?? []) {
+        if (item.productName) set.add(item.productName);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [requests, user]);
+
   const filtered = useMemo(() => {
+    const cutoff =
+      dateRange === "all" ? null : new Date(Date.now() - Number(dateRange) * 86_400_000);
+
     return requests.filter((r) => {
       if (tab !== "All" && r.status !== tab) return false;
       if (filterWarehouse !== "all" && r.warehouseID !== filterWarehouse) return false;
       if (!user?.isAdmin && r.submittedByUID !== user?.uid) return false;
+      if (filterProduct !== "all" && !r.items?.some((i) => i.productName === filterProduct)) {
+        return false;
+      }
+      if (cutoff) {
+        const ts = toDate(r.timestamp);
+        if (!ts || ts < cutoff) return false;
+      }
       return true;
     });
-  }, [requests, tab, filterWarehouse, user]);
+  }, [requests, tab, filterWarehouse, filterProduct, dateRange, user]);
 
   const counts = useMemo(() => {
     const base = user?.isAdmin ? requests : requests.filter((r) => r.submittedByUID === user?.uid);
@@ -104,52 +142,88 @@ export default function RequestsPage() {
 
   return (
     <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
-      <PageHeader
+      {/* Account controls, as on the native My Requests tab */}
+      <NavBarLeft>
+        <NavCircleButton href="/account" label="Account" tint="blue">
+          <PersonCircleIcon className="w-[26px] h-[26px]" />
+        </NavCircleButton>
+      </NavBarLeft>
+      <NavBarRight>
+        <button
+          onClick={signOut}
+          className="bg-[#1C1C1E] rounded-full px-4 py-2 text-[15px] font-medium text-[#0A84FF] active:bg-[#2C2C2E] transition-colors"
+        >
+          Logout
+        </button>
+      </NavBarRight>
+
+      <LargeTitle
         title={user?.isAdmin ? "Request Queue" : "My Requests"}
-        subtitle={`${filtered.length} requests`}
-        actions={
-          <HeaderButton onClick={() => setShowSubmit(true)}>
-            <PlusIcon />
-            New Request
-          </HeaderButton>
-        }
+        subtitle={`${filtered.length} of ${counts.All} requests`}
       />
 
-      {/* Filters */}
-      <div className="space-y-2.5 mb-4">
-        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar">
-          <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[14px] p-1">
-            {STATUS_TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                  tab === t ? "bg-[#0A84FF]/20 text-[#0A84FF]" : "text-gray-500 hover:text-white"
-                }`}
-              >
-                {t}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t ? "bg-[#0A84FF]/30" : "bg-white/5"}`}>
-                  {counts[t]}
-                </span>
-              </button>
-            ))}
+      {/* Filter panel */}
+      <div className="flex items-center gap-2 -mx-2 mb-2">
+        <TextAction
+          onClick={() => setFiltersOpen((v) => !v)}
+          icon={<ChevronDownIcon className={`w-[17px] h-[17px] transition-transform ${filtersOpen ? "rotate-180" : ""}`} />}
+        >
+          {filtersOpen ? "Hide Filters" : "Show Filters"}
+        </TextAction>
+        <TextAction onClick={() => load()} icon={<RefreshGlyph />}>
+          Refresh
+        </TextAction>
+      </div>
+
+      {filtersOpen && (
+        <div className="space-y-2.5 mb-4">
+          {warehouses.length > 0 && (
+            <SelectRow
+              label="Warehouse"
+              value={filterWarehouse}
+              onChange={setFilterWarehouse}
+              options={[
+                { value: "all", label: "All" },
+                ...warehouses.map((w) => ({ value: w.id!, label: w.name })),
+              ]}
+            />
+          )}
+          <div className="grid grid-cols-2 gap-2.5">
+            <SelectRow
+              label="Product"
+              value={filterProduct}
+              onChange={setFilterProduct}
+              options={[
+                { value: "all", label: "All" },
+                ...productNames.map((n) => ({ value: n, label: n })),
+              ]}
+            />
+            <SelectRow
+              label="Status"
+              value={tab}
+              onChange={(v) => setTab(v as StatusTab)}
+              options={STATUS_TABS.map((t) => ({ value: t, label: t === "All" ? "All" : t }))}
+            />
           </div>
+          <SelectRow
+            label="Date Range"
+            value={dateRange}
+            onChange={(v) => setDateRange(v as DateRange)}
+            options={DATE_RANGES.map((d) => ({ value: d.key, label: d.label }))}
+          />
         </div>
-        {warehouses.length > 0 && (
-          <select
-            value={filterWarehouse}
-            onChange={(e) => setFilterWarehouse(e.target.value)}
-            className="w-full sm:w-auto bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white focus:outline-none focus:border-[#0A84FF]"
-          >
-            <option value="all">All Warehouses</option>
-            {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-        )}
+      )}
+
+      <div className="mb-4">
+        <BigButton onClick={() => setShowSubmit(true)}>
+          <PlusIcon className="w-[17px] h-[17px]" />
+          New Request
+        </BigButton>
       </div>
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <div className="text-center text-gray-500 py-12">No {tab === "All" ? "" : tab.toLowerCase()} requests</div>
+          <div className="text-center text-[17px] text-[rgba(235,235,245,0.3)] py-20">No requests yet.</div>
         ) : (
           filtered.map((r) => {
             const wh = warehouses.find((w) => w.id === r.warehouseID);
@@ -251,6 +325,15 @@ function StatusBadge({ status }: { status: string }) {
       <span>{s.icon}</span> {status}
     </span>
   );
+}
+
+function toDate(ts: { toDate?: () => Date; seconds?: number } | null | undefined): Date | null {
+  if (!ts) return null;
+  try {
+    if (typeof ts === "object" && "toDate" in ts && ts.toDate) return ts.toDate();
+    if (typeof ts === "object" && "seconds" in ts && ts.seconds) return new Date(ts.seconds * 1000);
+  } catch { /* fall through */ }
+  return null;
 }
 
 function formatDate(ts: { toDate?: () => Date; seconds?: number } | null | undefined): string {
@@ -396,5 +479,14 @@ function SubmitRequestModal({ warehouses, companyID, onSave, onClose }: {
           </div>
       </div>
     </Sheet>
+  );
+}
+
+
+function RefreshGlyph() {
+  return (
+    <svg className="w-[17px] h-[17px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
   );
 }

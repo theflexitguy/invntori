@@ -8,6 +8,7 @@ type IconProps = { className?: string };
    ────────────────────────────────────────────────────────────────────────── */
 
 const fill = { fill: "currentColor", viewBox: "0 0 24 24", "aria-hidden": true } as const;
+const stroke = { fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": true } as const;
 
 /** chart.bar.fill */
 export function ChartBarIcon({ className = "w-6 h-6" }: IconProps) {
@@ -36,10 +37,13 @@ export function BoxIcon({ className = "w-6 h-6" }: IconProps) {
 export function ToolsIcon({ className = "w-6 h-6" }: IconProps) {
   return (
     <svg className={className} {...fill}>
-      <path d="M14.9 3.2a4.7 4.7 0 0 1 5.98 5.98l-1.9-1.9-1.6.43-.43 1.6-1.6.43-.43 1.6-1.9-1.9a4.7 4.7 0 0 1 1.88-6.24Z" opacity="0" />
-      <path d="M20.6 3.9a.7.7 0 0 0-.99-.02l-2.2 2.1a.9.9 0 0 1-1.26-.02l-.02-.02a.9.9 0 0 1 0-1.27l2.16-2.16a.7.7 0 0 0-.35-1.18 4.9 4.9 0 0 0-5.83 5.92c.1.42-.02.86-.32 1.17l-8.2 8.35a2.63 2.63 0 0 0 3.72 3.72l8.3-8.16c.31-.3.75-.43 1.17-.33a4.9 4.9 0 0 0 5.9-5.86.7.7 0 0 0-1.17-.35l-.9.9Z" />
-      <path d="M3.6 4.8 5.9 2.5l4.6 4.35-2.1 2.1L3.6 4.8Z" opacity="0" />
-      <path d="M15.3 14.4l4.9 4.9a1.9 1.9 0 1 1-2.7 2.7l-4.9-4.9 2.7-2.7Z" />
+      {/* wrench: head top-left, shaft running to bottom-right */}
+      <path d="M8.9 2.4a4.85 4.85 0 0 0-4.6 6.4L2.2 10.9a1.5 1.5 0 0 0 0 2.12l1.06 1.06a1.5 1.5 0 0 0 2.12 0l2.1-2.1a4.85 4.85 0 0 0 6.06-6.2.75.75 0 0 0-1.24-.3l-1.9 1.9a1.2 1.2 0 0 1-1.7 0l-.6-.6a1.2 1.2 0 0 1 0-1.7l1.9-1.9a.75.75 0 0 0-.3-1.24 4.9 4.9 0 0 0-.8-.14Z" />
+      <path d="m11.2 13.4 5.9 5.9a2.1 2.1 0 1 0 2.97-2.97l-5.9-5.9-2.97 2.97Z" />
+      {/* screwdriver: tip bottom-left, handle top-right */}
+      <path d="M18.4 2.3a1.4 1.4 0 0 1 1.98 0l1.32 1.32a1.4 1.4 0 0 1 0 1.98l-3.1 3.1-3.3-3.3 3.1-3.1Z" />
+      <path d="m13.9 6.7 3.3 3.3-7.3 7.3-1.55 3.06a.7.7 0 0 1-1.15.17l-1.53-1.53a.7.7 0 0 1 .17-1.15L8.9 16.3l5-9.6Z" opacity="0" />
+      <path d="m14.2 7.1 2.7 2.7-6.5 6.5-3.2 1.6a.65.65 0 0 1-.87-.87l1.6-3.2 6.27-6.73Z" />
     </svg>
   );
 }
@@ -181,9 +185,253 @@ export function GearIcon({ className = "w-5 h-5" }: IconProps) {
   );
 }
 
-/* Outline utility glyphs */
+/** flask / beaker — sprayer-class equipment */
+export function FlaskIcon({ className = "w-6 h-6" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M9.6 2.4h4.8a.9.9 0 0 1 0 1.8h-.5v3.63c0 .43.12.85.36 1.21l4.9 7.5A3.1 3.1 0 0 1 16.57 21H7.43a3.1 3.1 0 0 1-2.59-4.46l4.9-7.5c.24-.36.36-.78.36-1.21V4.2h-.5a.9.9 0 0 1 0-1.8Zm1.7 1.8v3.63c0 .78-.23 1.55-.65 2.2L9.3 12h5.4l-1.35-1.97a4.02 4.02 0 0 1-.65-2.2V4.2h-1.4Z" />
+    </svg>
+  );
+}
 
-const stroke = { fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": true } as const;
+/** line.3.horizontal.decrease.circle — the filter button */
+export function FilterCircleIcon({ className = "w-6 h-6" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9.3" strokeWidth={1.7} />
+      <path strokeLinecap="round" strokeWidth={1.7} d="M7.4 9.3h9.2M8.9 12h6.2M10.4 14.7h3.2" />
+    </svg>
+  );
+}
+
+/** person.fill — an individual employee */
+export function PersonIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 11.6a4.3 4.3 0 1 0 0-8.6 4.3 4.3 0 0 0 0 8.6Zm0 1.9c-3.1 0-8.2 1.6-8.2 4.7v2.2c0 .33.27.6.6.6h15.2a.6.6 0 0 0 .6-.6v-2.2c0-3.1-5.1-4.7-8.2-4.7Z" />
+    </svg>
+  );
+}
+
+/** person.3.fill — admin / manager */
+export function PersonGroupIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Zm0 1.7c-2.3 0-5.6 1.2-5.6 3.5v2.4c0 .33.27.6.6.6h10a.6.6 0 0 0 .6-.6v-2.4c0-2.3-3.3-3.5-5.6-3.5ZM4.6 10.4a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4Zm0 1.6c-1.4 0-4.1.8-4.1 2.7v2.1c0 .33.27.6.6.6H4.6v-1.7c0-1.36.62-2.5 1.6-3.34-.55-.24-1.14-.36-1.6-.36ZM19.4 10.4a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4Zm0 1.6c-.46 0-1.05.12-1.6.36.98.84 1.6 1.98 1.6 3.34v1.7h3.5a.6.6 0 0 0 .6-.6v-2.1c0-1.9-2.7-2.7-4.1-2.7Z" />
+    </svg>
+  );
+}
+
+/** envelope.fill */
+export function EnvelopeIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M2.4 7.05 12 12.6l9.6-5.55A2.5 2.5 0 0 0 19.2 5.2H4.8a2.5 2.5 0 0 0-2.4 1.85Zm19.3 1.98-9.25 5.35a.9.9 0 0 1-.9 0L2.3 9.03V16.3a2.5 2.5 0 0 0 2.5 2.5h14.4a2.5 2.5 0 0 0 2.5-2.5V9.03Z" />
+    </svg>
+  );
+}
+
+/** link.circle — integrations */
+export function LinkIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M9.4 13.2a3.9 3.9 0 0 0 5.5 0l3.4-3.4a3.9 3.9 0 1 0-5.5-5.5l-1.6 1.6a.95.95 0 1 0 1.34 1.34l1.6-1.6a2 2 0 1 1 2.82 2.82l-3.4 3.4a2 2 0 0 1-2.83 0 .95.95 0 1 0-1.33 1.34Zm5.2-2.4a3.9 3.9 0 0 0-5.5 0l-3.4 3.4a3.9 3.9 0 1 0 5.5 5.5l1.6-1.6a.95.95 0 1 0-1.34-1.34l-1.6 1.6a2 2 0 1 1-2.82-2.82l3.4-3.4a2 2 0 0 1 2.83 0 .95.95 0 1 0 1.33-1.34Z" />
+    </svg>
+  );
+}
+
+/** checkmark.circle.fill */
+export function CheckCircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 2.2a9.8 9.8 0 1 0 0 19.6 9.8 9.8 0 0 0 0-19.6Zm5.05 7.2-6 7.1a.95.95 0 0 1-1.4.06l-3.1-3.1a.95.95 0 1 1 1.34-1.34l2.37 2.36 5.34-6.31a.95.95 0 1 1 1.45 1.23Z" />
+    </svg>
+  );
+}
+
+/** circle (unchecked) */
+export function CircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9" strokeWidth={1.6} />
+    </svg>
+  );
+}
+
+/** person.crop.circle */
+export function PersonCircleIcon({ className = "w-6 h-6" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9.4" strokeWidth={1.6} />
+      <circle cx="12" cy="9.6" r="3.1" fill="currentColor" stroke="none" />
+      <path d="M5.7 19.4c1.1-2.4 3.5-3.7 6.3-3.7s5.2 1.3 6.3 3.7" strokeWidth={1.6} strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+/** slider.horizontal.3 */
+export function SlidersIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M3 6.6h9.2a2.8 2.8 0 0 0 5.4 0H21a.9.9 0 0 0 0-1.8h-3.4a2.8 2.8 0 0 0-5.4 0H3a.9.9 0 0 0 0 1.8Zm18 4.5h-9.2a2.8 2.8 0 0 0-5.4 0H3a.9.9 0 1 0 0 1.8h3.4a2.8 2.8 0 0 0 5.4 0H21a.9.9 0 0 0 0-1.8Zm0 6.3h-3.4a2.8 2.8 0 0 0-5.4 0H3a.9.9 0 0 0 0 1.8h9.2a2.8 2.8 0 0 0 5.4 0H21a.9.9 0 0 0 0-1.8Z" />
+    </svg>
+  );
+}
+
+/** info.circle.fill */
+export function InfoCircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 2.2a9.8 9.8 0 1 0 0 19.6 9.8 9.8 0 0 0 0-19.6Zm0 3.4a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6Zm1.5 12.2h-3a.85.85 0 0 1 0-1.7h.65v-4.2h-.5a.85.85 0 0 1 0-1.7h1.35c.47 0 .85.38.85.85v5.05h.65a.85.85 0 0 1 0 1.7Z" />
+    </svg>
+  );
+}
+
+/** arrow.triangle.2.circlepath — a synced integration */
+export function SyncIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.5 9a7.5 7.5 0 0 1 12.7-3.2L20 8.5M20 4.6v4h-4M19.5 15a7.5 7.5 0 0 1-12.7 3.2L4 15.5M4 19.4v-4h4" />
+    </svg>
+  );
+}
+
+/** dollarsign.circle */
+export function DollarCircleIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9" strokeWidth={1.7} />
+      <path strokeLinecap="round" strokeWidth={1.7} d="M12 6.4v11.2M14.6 9.2c-.5-.8-1.5-1.3-2.6-1.3-1.5 0-2.7.8-2.7 2s1.1 1.7 2.7 2c1.6.3 2.7.9 2.7 2.1s-1.2 2-2.7 2c-1.2 0-2.2-.5-2.7-1.4" />
+    </svg>
+  );
+}
+
+/** doc.text */
+export function DocIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M6.6 2h6.2c.4 0 .78.16 1.06.44l3.9 3.9c.28.28.44.66.44 1.06V19.5a2.5 2.5 0 0 1-2.5 2.5H6.6a2.5 2.5 0 0 1-2.5-2.5v-15A2.5 2.5 0 0 1 6.6 2Zm1.9 6.4a.85.85 0 0 0 0 1.7h5.4a.85.85 0 0 0 0-1.7H8.5Zm0 3.6a.85.85 0 0 0 0 1.7h7a.85.85 0 0 0 0-1.7h-7Zm0 3.6a.85.85 0 0 0 0 1.7h4.4a.85.85 0 0 0 0-1.7H8.5Z" />
+    </svg>
+  );
+}
+
+/** clock.fill */
+export function ClockIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 2.3a9.7 9.7 0 1 0 0 19.4 9.7 9.7 0 0 0 0-19.4Zm.9 4.6v5.02l3.2 1.9a.85.85 0 0 1-.87 1.46l-3.6-2.14a.85.85 0 0 1-.42-.73V6.9a.85.85 0 0 1 1.7 0Z" />
+    </svg>
+  );
+}
+
+/** calendar */
+export function CalendarIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M7.2 2.2a.9.9 0 0 1 .9.9v1.1h7.8V3.1a.9.9 0 0 1 1.8 0v1.1h.8A2.5 2.5 0 0 1 21 6.7v1.1H3V6.7a2.5 2.5 0 0 1 2.5-2.5h.8V3.1a.9.9 0 0 1 .9-.9ZM3 9.5h18v9A2.5 2.5 0 0 1 18.5 21h-13A2.5 2.5 0 0 1 3 18.5v-9Zm4 2.4a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Zm5 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Zm5 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3ZM7 16.3a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Zm5 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Z" />
+    </svg>
+  );
+}
+
+/** trash.fill */
+export function TrashIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M9.4 2.4a1.4 1.4 0 0 0-1.4 1.4v.7H4.6a.9.9 0 0 0 0 1.8h14.8a.9.9 0 0 0 0-1.8H16v-.7a1.4 1.4 0 0 0-1.4-1.4H9.4Zm.4 2.1v-.4h4.4v.4H9.8Z" />
+      <path d="M5.9 8.1h12.2l-.76 11.1a2.5 2.5 0 0 1-2.5 2.33H9.16a2.5 2.5 0 0 1-2.5-2.33L5.9 8.1Zm3.6 2.3a.8.8 0 0 0-.8.85l.4 7a.8.8 0 1 0 1.6-.1l-.4-7a.8.8 0 0 0-.8-.75Zm5 0a.8.8 0 0 0-.8.75l-.4 7a.8.8 0 1 0 1.6.1l.4-7a.8.8 0 0 0-.8-.85Z" />
+    </svg>
+  );
+}
+
+/** plus.circle.fill */
+export function PlusCircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 2.3a9.7 9.7 0 1 0 0 19.4 9.7 9.7 0 0 0 0-19.4Zm.95 5.35v3.4h3.4a.95.95 0 0 1 0 1.9h-3.4v3.4a.95.95 0 0 1-1.9 0v-3.4h-3.4a.95.95 0 0 1 0-1.9h3.4v-3.4a.95.95 0 0 1 1.9 0Z" />
+    </svg>
+  );
+}
+
+/** hourglass */
+export function HourglassIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M6.6 2.4h10.8a.9.9 0 0 1 0 1.8h-.45v1.06c0 1.5-.66 2.93-1.8 3.9L13.36 12l1.79 2.84c1.14.97 1.8 2.4 1.8 3.9v1.06h.45a.9.9 0 0 1 0 1.8H6.6a.9.9 0 0 1 0-1.8h.45V18.74c0-1.5.66-2.93 1.8-3.9L10.64 12 8.85 9.16a5.14 5.14 0 0 1-1.8-3.9V4.2H6.6a.9.9 0 0 1 0-1.8Zm2.25 1.8v1.06c0 .38.05.75.16 1.1h6.0c.1-.35.15-.72.15-1.1V4.2H8.85Zm3.15 9.5-1.96 2.6a3.34 3.34 0 0 0-.99 2.44v1.06h5.9V18.74c0-.92-.36-1.79-1-2.44L12 13.7Z" />
+    </svg>
+  );
+}
+
+/** square.and.pencil */
+export function PencilSquareIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M5.6 4.3h5.1a.9.9 0 0 1 0 1.8H5.8c-.55 0-1 .45-1 1v11c0 .55.45 1 1 1h11c.55 0 1-.45 1-1v-4.9a.9.9 0 0 1 1.8 0v5.1a2.6 2.6 0 0 1-2.6 2.6H5.6A2.6 2.6 0 0 1 3 18.3V6.9a2.6 2.6 0 0 1 2.6-2.6Z" />
+      <path d="m18.75 2.55 2.7 2.7-7.4 7.4-3.35.65a.55.55 0 0 1-.65-.65l.65-3.35 8.05-6.75Z" />
+    </svg>
+  );
+}
+
+/** chevron.up.chevron.down — the native inline picker affordance */
+export function UpDownChevronIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="m8 10 4-4 4 4M8 14l4 4 4-4" />
+    </svg>
+  );
+}
+
+/** person.crop.circle.badge.plus */
+export function PersonBadgePlusIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M10.4 2.4a8.6 8.6 0 0 0-6.2 14.55c.9-2.3 3.3-3.6 6.2-3.6.62 0 1.22.06 1.78.18a5.6 5.6 0 0 1 6.6-4.3A8.6 8.6 0 0 0 10.4 2.4Zm0 2.6a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm.6 10.15c-2.6 0-4.7 1.2-5.45 3.2a8.57 8.57 0 0 0 7.03 2.5 5.6 5.6 0 0 1-1.6-5.62 8.4 8.4 0 0 0 .02-.08Z" />
+      <path d="M17.9 11.3a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Zm.8 3.3h1.35a.8.8 0 0 1 0 1.6H18.7v1.35a.8.8 0 0 1-1.6 0V16.2h-1.35a.8.8 0 0 1 0-1.6h1.35v-1.35a.8.8 0 0 1 1.6 0v1.35Z" />
+    </svg>
+  );
+}
+
+/** person.crop.circle.badge.minus */
+export function PersonBadgeMinusIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M10.4 2.4a8.6 8.6 0 0 0-6.2 14.55c.9-2.3 3.3-3.6 6.2-3.6.62 0 1.22.06 1.78.18a5.6 5.6 0 0 1 6.6-4.3A8.6 8.6 0 0 0 10.4 2.4Zm0 2.6a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm.6 10.15c-2.6 0-4.7 1.2-5.45 3.2a8.57 8.57 0 0 0 7.03 2.5 5.6 5.6 0 0 1-1.6-5.62 8.4 8.4 0 0 0 .02-.08Z" />
+      <path d="M17.9 11.3a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Zm2.15 4.9h-4.3a.8.8 0 0 1 0-1.6h4.3a.8.8 0 0 1 0 1.6Z" />
+    </svg>
+  );
+}
+
+/** archivebox */
+export function ArchiveBoxIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <rect x="3.4" y="3.6" width="17.2" height="4.2" rx="1.4" strokeWidth={1.7} />
+      <path strokeWidth={1.7} d="M5 8.2v10.2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.2" />
+      <path strokeWidth={1.7} strokeLinecap="round" d="M9.6 12.2h4.8" />
+    </svg>
+  );
+}
+
+/** checkmark.circle */
+export function CheckCircleOutlineIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9.2" strokeWidth={1.7} />
+      <path strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" d="m7.8 12.3 2.85 2.85L16.4 9.4" />
+    </svg>
+  );
+}
+
+/** xmark.circle */
+export function XCircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9.2" strokeWidth={1.7} />
+      <path strokeWidth={1.9} strokeLinecap="round" d="m9 9 6 6M15 9l-6 6" />
+    </svg>
+  );
+}
+
+/* Outline utility glyphs */
 
 export function ChevronRightIcon({ className = "w-4 h-4" }: IconProps) {
   return (
@@ -317,6 +565,7 @@ const TITLES: [string, string][] = [
   ["/chat", "Ask invntori"],
   ["/account", "Account"],
   ["/employees", "Employees"],
+  ["/orders/new", "Log Purchase Order"],
   ["/orders", "Purchase Orders"],
   ["/fleet", "Fleet"],
   ["/admin/offices", "Offices"],
@@ -327,7 +576,7 @@ const TITLES: [string, string][] = [
   ["/admin/products", "Products"],
   ["/admin/detail-fields", "Detail Fields"],
   ["/admin/requests", "Pending Requests"],
-  ["/admin/bulk-edit", "Manual Adjustment"],
+  ["/admin/bulk-edit", "Bulk Inventory Edit"],
   ["/admin/equipment-repairs", "Equipment Repairs"],
   ["/admin/valuation", "Inventory Valuation"],
   ["/admin", "Admin"],
@@ -352,4 +601,12 @@ const ROOT_ROUTES = new Set([
 
 export function isRootRoute(pathname: string): boolean {
   return ROOT_ROUTES.has(pathname);
+}
+
+
+/** Sprayer-class categories get the flask glyph; everything else, tools. */
+export function equipmentGlyph(category?: string): ComponentType<IconProps> {
+  const c = (category ?? "").toLowerCase();
+  if (c.includes("spray") || c.includes("chemical") || c.includes("tank")) return FlaskIcon;
+  return ToolsIcon;
 }

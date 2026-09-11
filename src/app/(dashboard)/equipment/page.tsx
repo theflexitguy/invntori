@@ -5,9 +5,11 @@ import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import { Badge } from "@/components/ui/Badge";
 import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
-import { PageHeader, HeaderButton, PlusIcon } from "@/components/ui/PageHeader";
+import { PlusIcon } from "@/components/ui/PageHeader";
+import { LargeTitle, SearchField, Group, Pill, NavCircleButton, type Tint } from "@/components/ui/ios";
+import { NavBarLeft, NavBarRight } from "@/components/layout/NavBarSlot";
+import { FilterCircleIcon, ChevronRightIcon, equipmentGlyph } from "@/components/layout/nav";
 import Link from "next/link";
 import type { Equipment } from "@/lib/types";
 
@@ -21,9 +23,9 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
   { key: "retired", label: "Retired" },
 ];
 
-const statusVariant: Record<string, "green" | "blue" | "yellow" | "red" | "gray"> = {
+const statusTint: Record<string, Tint> = {
   available: "green",
-  checkedOut: "blue",
+  checkedOut: "orange",
   inRepair: "yellow",
   retired: "gray",
 };
@@ -42,6 +44,7 @@ export default function EquipmentPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.companyID) return;
@@ -97,84 +100,111 @@ export default function EquipmentPage() {
 
   return (
     <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
-      <PageHeader
-        title="Equipment"
-        subtitle={`${filtered.length} items`}
-        actions={
-          user?.isAdmin ? (
-            <HeaderButton onClick={() => setShowAdd(true)}>
-              <PlusIcon />
-              Add Equipment
-            </HeaderButton>
-          ) : undefined
-        }
-      />
+      {/* Nav bar controls, the way the native Equipment tab carries them */}
+      <NavBarLeft>
+        <NavCircleButton
+          label={filtersOpen ? "Hide filters" : "Show filters"}
+          onClick={() => setFiltersOpen((v) => !v)}
+          tint={statusFilter === "All" ? "white" : "blue"}
+        >
+          <FilterCircleIcon className="w-[22px] h-[22px]" />
+        </NavCircleButton>
+      </NavBarLeft>
+      {user?.isAdmin && (
+        <NavBarRight>
+          <NavCircleButton label="Add equipment" onClick={() => setShowAdd(true)}>
+            <PlusIcon className="w-[17px] h-[17px]" />
+          </NavCircleButton>
+        </NavBarRight>
+      )}
 
-      {/* Status filter tabs */}
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 mb-3 overflow-x-auto no-scrollbar">
-        <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[14px] p-1">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                statusFilter === tab.key ? "bg-[#0A84FF]/20 text-[#0A84FF]" : "text-gray-500 hover:text-white"
-              }`}
-            >
-              {tab.label}
-              {counts[tab.key] !== undefined && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? "bg-[#0A84FF]/30" : "bg-white/5"}`}>
-                  {counts[tab.key]}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+      <LargeTitle title="Equipment" />
 
-      <div className="mb-4">
-        <input
-          type="search"
-          placeholder="Search name, category, or serial…"
+      <div className="mb-3">
+        <SearchField
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-72 bg-[#1C1C1E] rounded-[14px] sm:rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]"
+          onChange={setSearch}
+          placeholder="Search by name or category"
+          shape="pill"
         />
       </div>
 
-      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
-        {filtered.length === 0 ? (
-          <p className="px-6 py-10 text-center text-gray-500 text-sm">No equipment found</p>
-        ) : (
-          <div className="divide-y divide-[#38383A]">
-            {filtered.map((eq) => (
+      {/* Status filter — collapsed behind the nav bar's filter button */}
+      {filtersOpen && (
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 mb-3 overflow-x-auto no-scrollbar">
+          <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[12px] p-1">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setStatusFilter(tab.key)}
+                className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
+                  statusFilter === tab.key
+                    ? "bg-[#0A84FF]/20 text-[#0A84FF]"
+                    : "text-[rgba(235,235,245,0.6)]"
+                }`}
+              >
+                {tab.label}
+                {counts[tab.key] !== undefined && (
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${
+                    statusFilter === tab.key ? "bg-[#0A84FF]/25" : "bg-white/10"
+                  }`}>
+                    {counts[tab.key]}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="bg-[#1C1C1E] rounded-[14px] px-6 py-12 text-center text-[15px] text-[rgba(235,235,245,0.6)]">
+          No equipment found
+        </div>
+      ) : (
+        <Group>
+          {filtered.map((eq, i) => {
+            const Glyph = equipmentGlyph(eq.category);
+            const checkedOut = eq.status === "checkedOut";
+            return (
               <Link
                 key={eq.id}
                 href={`/equipment/${eq.id}`}
-                className={`flex items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors ${
+                className={`w-full flex items-stretch pl-4 active:bg-white/[0.06] transition-colors ${
                   eq.status === "retired" ? "opacity-50" : ""
                 }`}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-white text-sm break-words">{eq.name}</span>
-                    <Badge variant={statusVariant[eq.status] ?? "gray"}>{statusLabel[eq.status] ?? eq.status}</Badge>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 truncate">
-                    {[eq.category, eq.serialNumber && `SN ${eq.serialNumber}`].filter(Boolean).join(" · ") || "No details"}
-                  </p>
-                  {eq.currentHolderName && (
-                    <p className="text-xs text-[#0A84FF]/80 mt-0.5 truncate">Held by {eq.currentHolderName}</p>
-                  )}
-                </div>
-                <svg className="w-4 h-4 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <span className="flex items-center pr-3 shrink-0">
+                  <Glyph className="w-[24px] h-[24px] text-[#0A84FF]" />
+                </span>
+                <span
+                  className={`flex-1 min-w-0 flex items-center gap-3 pr-3.5 py-3 ${
+                    i === filtered.length - 1 ? "" : "border-b border-[#38383A]/70"
+                  }`}
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[17px] font-semibold text-white leading-snug break-words">
+                      {eq.name}
+                    </span>
+                    <span className="block text-[15px] text-[rgba(235,235,245,0.6)] leading-snug">
+                      {eq.category ?? "Uncategorized"}
+                    </span>
+                    {checkedOut && eq.currentHolderName && (
+                      <span className="block text-[15px] text-[#FF9F0A] leading-snug">
+                        With {eq.currentHolderName}
+                      </span>
+                    )}
+                  </span>
+                  <Pill tint={statusTint[eq.status] ?? "gray"}>
+                    {statusLabel[eq.status] ?? eq.status}
+                  </Pill>
+                  <ChevronRightIcon className="w-[14px] h-[14px] text-[rgba(235,235,245,0.3)] shrink-0" />
+                </span>
               </Link>
-            ))}
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </Group>
+      )}
 
       {showAdd && <AddEquipmentModal onSave={addEquipment} onClose={() => setShowAdd(false)} />}
     </div>

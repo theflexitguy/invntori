@@ -30,6 +30,11 @@ export interface Product {
   reorderThreshold?: number;
   unitCost?: number;
   isRetired?: boolean;
+  /** Links the product to a FieldRoutes chemical for inventory auditing. */
+  fieldroutesChemicalID?: number;
+  mixRate?: string;
+  applicationAreas?: string[];
+  targetPests?: string[];
 }
 
 export interface Category {
@@ -84,6 +89,9 @@ export interface Employee {
   fcmToken?: string;
   createdAt?: Timestamp;
   managePermissions?: string[];
+  /** Links the employee to their FieldRoutes account for inventory auditing. */
+  fieldroutesEmployeeID?: number;
+  customFields?: Record<string, string>;
 }
 
 // ── Equipment ──────────────────────────────────────────────────────────────
@@ -129,6 +137,9 @@ export interface EquipmentRepair {
   reviewedAt?: Timestamp;
   reviewedByName?: string;
   responseNote?: string;
+  /** Substitute handed to the reporter when the request was approved. */
+  replacementEquipmentID?: string;
+  replacementEquipmentName?: string;
 }
 
 // ── Fleet ──────────────────────────────────────────────────────────────────
@@ -198,6 +209,12 @@ export interface PurchaseOrder {
   createdAt?: Timestamp;
   notes?: string;
   totalCost?: number;
+  /** Order reference printed by the vendor. */
+  vendorRef?: string;
+  /** Destination the stock is received into. */
+  warehouseID?: string;
+  warehouseName?: string;
+  expectedDate?: Timestamp;
 }
 
 // ── Inventory Requests ─────────────────────────────────────────────────────
