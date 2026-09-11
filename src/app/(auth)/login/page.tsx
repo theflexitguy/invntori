@@ -64,49 +64,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-[#000000] flex items-center justify-center px-4 py-8 pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))]">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8 sm:mb-10">
           <div className="flex justify-center mb-4">
-            <Image src="/logo.png" alt="invntori" width={64} height={64} className="rounded-2xl" />
+            <Image src="/logo.png" alt="" width={64} height={64} className="rounded-2xl w-14 h-14 sm:w-16 sm:h-16" priority />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">invntori</h1>
-          <p className="text-gray-400 mt-2 text-sm">Inventory management for your team</p>
+          <h1 className="text-[34px] sm:text-[40px] font-bold text-white tracking-tight">invntori</h1>
+          <p className="text-[15px] text-[rgba(235,235,245,0.6)] mt-2">Inventory management for your team</p>
         </div>
 
         <form
           onSubmit={handleLogin}
-          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-8 shadow-2xl space-y-5"
+          className="bg-[#1C1C1E] rounded-[18px] p-6 sm:p-8 space-y-5"
         >
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
+            <label className="block text-[13px] font-semibold text-[rgba(235,235,245,0.6)] uppercase tracking-wide mb-2">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="w-full bg-[#2C2C2E] rounded-[12px] px-4 py-3.5 text-[17px] text-white placeholder-[rgba(235,235,245,0.4)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF] transition"
               placeholder="you@company.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
+            <label className="block text-[13px] font-semibold text-[rgba(235,235,245,0.6)] uppercase tracking-wide mb-2">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full bg-[#0f1117] border border-[#2a2f3e] rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition"
+              className="w-full bg-[#2C2C2E] rounded-[12px] px-4 py-3.5 text-[17px] text-white placeholder-[rgba(235,235,245,0.4)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF] transition"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm bg-red-950/40 border border-red-900/50 rounded-lg px-4 py-3">
+            <p className="text-[#FF453A] text-[15px] bg-[#FF453A]/10 rounded-[12px] px-4 py-3">
               {error}
             </p>
           )}
@@ -114,13 +118,13 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#35B2FF] hover:bg-[#1a8fd1] disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors"
+            className="w-full bg-[#0A84FF] active:bg-[#0071E3] disabled:opacity-50 text-white text-[17px] font-semibold rounded-[14px] py-3.5 transition-colors"
           >
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center text-gray-600 text-xs mt-6">
+        <p className="text-center text-[13px] text-[rgba(235,235,245,0.3)] mt-6">
           Access is managed by your company administrator.
         </p>
       </div>

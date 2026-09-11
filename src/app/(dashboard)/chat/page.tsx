@@ -5,6 +5,7 @@ import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { SparklesIcon } from "@/components/layout/nav";
 
 const CLOUD_FUNCTION_URL =
   "https://us-central1-premium-inventory-app.cloudfunctions.net/askInvntori";
@@ -298,7 +299,7 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
   const loadContext = useCallback(async () => {
@@ -427,7 +428,10 @@ export default function ChatPage() {
   }, [input, streaming, loadingContext, messages, contextSummary]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // On touch keyboards Enter should add a newline — the send button is right
+    // there. Only hardware keyboards get Enter-to-send.
+    const isTouch = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+    if (e.key === "Enter" && !e.shiftKey && !isTouch) {
       e.preventDefault();
       send();
     }
@@ -436,16 +440,14 @@ export default function ChatPage() {
   const disabled = streaming || loadingContext || !rateState.canRequest;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-0px)] max-h-screen">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#2a2f3e] flex items-center gap-2 bg-[#0f1117] shrink-0">
-        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-        </svg>
-        <h2 className="text-sm font-semibold text-white">Ask invntori</h2>
+      <div className="px-4 sm:px-6 py-3 border-b border-[#1C1C1E] flex items-center gap-2 bg-[#000000] shrink-0">
+        <SparklesIcon className="w-[18px] h-[18px] text-[#0A84FF] shrink-0" />
+        <h2 className="text-[17px] font-semibold text-white">Ask invntori</h2>
         {loadingContext && (
           <span className="ml-auto text-xs text-gray-500 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#35B2FF] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0A84FF] animate-pulse" />
             Loading data…
           </span>
         )}
@@ -458,15 +460,13 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto scroll-touch px-4 py-5 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center gap-6 pt-12 max-w-lg mx-auto">
-            <svg className="w-12 h-12 text-yellow-400 opacity-80" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-            </svg>
+          <div className="flex flex-col items-center gap-5 pt-6 sm:pt-12 max-w-lg mx-auto">
+            <SparklesIcon className="w-11 h-11 text-[#0A84FF]" />
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white mb-1">Ask anything about your inventory</h3>
-              <p className="text-sm text-gray-500">Powered by your live Firestore data</p>
+              <h3 className="text-[22px] font-bold text-white mb-1">Ask anything about your inventory</h3>
+              <p className="text-[15px] text-[rgba(235,235,245,0.6)]">Powered by your live inventory data</p>
             </div>
             <div className="w-full space-y-2">
               {SUGGESTIONS.map((s) => (
@@ -474,7 +474,7 @@ export default function ChatPage() {
                   key={s}
                   onClick={() => send(s)}
                   disabled={disabled}
-                  className="w-full text-left px-4 py-3 rounded-xl bg-[#1a1f2e] border border-[#2a2f3e] text-sm text-gray-300 hover:border-[#35B2FF]/40 hover:text-white transition-colors disabled:opacity-40"
+                  className="w-full text-left px-4 py-3.5 rounded-[14px] bg-[#1C1C1E] text-[16px] text-white active:bg-[#2C2C2E] transition-colors disabled:opacity-40"
                 >
                   {s}
                 </button>
@@ -486,17 +486,15 @@ export default function ChatPage() {
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full bg-yellow-400/20 flex items-center justify-center shrink-0 mt-1 mr-2">
-                    <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-                    </svg>
+                  <div className="w-7 h-7 rounded-full bg-[#0A84FF]/15 flex items-center justify-center shrink-0 mt-1 mr-2">
+                    <SparklesIcon className="w-3.5 h-3.5 text-[#0A84FF]" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                  className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 rounded-[20px] text-[16px] leading-[1.35] whitespace-pre-wrap break-words ${
                     msg.role === "user"
-                      ? "bg-[#35B2FF] text-white rounded-tr-sm"
-                      : "bg-[#1a1f2e] border border-[#2a2f3e] text-gray-200 rounded-tl-sm"
+                      ? "bg-[#0A84FF] text-white rounded-br-[6px]"
+                      : "bg-[#1C1C1E] text-white rounded-bl-[6px]"
                   }`}
                 >
                   {msg.text || (msg.role === "assistant" && <span className="inline-flex gap-1">
@@ -514,19 +512,19 @@ export default function ChatPage() {
 
       {/* Rate limit warning */}
       {rateState.remaining <= 5 && rateState.canRequest && (
-        <div className="px-4 py-1 text-xs text-amber-400 text-center bg-[#0f1117] border-t border-[#2a2f3e]">
+        <div className="px-4 py-1 text-xs text-amber-400 text-center bg-[#000000] border-t border-[#2C2C2E]">
           {rateState.remaining} of {MAX_PER_HOUR} requests remaining this hour
         </div>
       )}
       {!rateState.canRequest && (
-        <div className="px-4 py-1 text-xs text-red-400 text-center bg-[#0f1117] border-t border-[#2a2f3e]">
+        <div className="px-4 py-1 text-xs text-red-400 text-center bg-[#000000] border-t border-[#2C2C2E]">
           Hourly limit reached. Try again shortly.
         </div>
       )}
 
       {/* Input bar */}
-      <div className="px-4 py-4 border-t border-[#2a2f3e] bg-[#0f1117] shrink-0">
-        <div className="flex gap-2 items-end bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl px-4 py-3 focus-within:border-[#35B2FF]/60 transition-colors">
+      <div className="px-3 sm:px-4 pt-2.5 pb-[calc(0.625rem+var(--safe-bottom))] lg:pb-2.5 border-t border-[#1C1C1E] bg-[#000000] shrink-0">
+        <div className="flex gap-2 items-end bg-[#1C1C1E] rounded-[18px] px-3.5 py-2.5 focus-within:border-[#0A84FF]/60 transition-colors">
           <textarea
             ref={inputRef}
             rows={1}
@@ -535,7 +533,7 @@ export default function ChatPage() {
             onKeyDown={handleKeyDown}
             disabled={disabled}
             placeholder="Ask about your inventory…"
-            className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 resize-none focus:outline-none max-h-32 min-h-[20px]"
+            className="flex-1 min-w-0 bg-transparent text-[16px] text-white placeholder-[rgba(235,235,245,0.4)] resize-none focus:outline-none max-h-32 min-h-[24px] py-2"
             style={{ height: "auto" }}
             onInput={(e) => {
               const t = e.currentTarget;
@@ -546,14 +544,15 @@ export default function ChatPage() {
           <button
             onClick={() => send()}
             disabled={!input.trim() || disabled}
-            className="shrink-0 w-8 h-8 rounded-full bg-[#35B2FF] flex items-center justify-center disabled:opacity-30 transition-opacity hover:bg-[#2da3f0]"
+            aria-label="Send message"
+            className="shrink-0 w-9 h-9 rounded-full bg-[#0A84FF] flex items-center justify-center disabled:opacity-30 transition-opacity hover:bg-[#409CFF] active:scale-95"
           >
             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
             </svg>
           </button>
         </div>
-        <p className="text-center text-xs text-gray-600 mt-2">Shift+Enter for new line · Enter to send</p>
+        <p className="hidden sm:block text-center text-xs text-gray-600 mt-2">Shift+Enter for new line · Enter to send</p>
       </div>
     </div>
   );

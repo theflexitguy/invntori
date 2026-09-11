@@ -1,44 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { collection, getDocs, addDoc, updateDoc, doc } from "firebase/firestore";
+import { useEffect, useState, useCallback } from "react";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import Link from "next/link";
-import type { Warehouse } from "@/lib/types";
+import { FormSheet } from "@/components/ui/FormSheet";
+import {
+  LargeTitle, Group, NavCircleButton, FieldLabel, fieldCls, ChipSelect,
+} from "@/components/ui/ios";
+import { NavBarRight } from "@/components/layout/NavBarSlot";
+import { PlusIcon } from "@/components/ui/PageHeader";
+import { ChevronRightIcon, WarehouseIcon } from "@/components/layout/nav";
+import type { Warehouse, Office } from "@/lib/types";
 
 export default function WarehousesPage() {
   const { user } = useAuth();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [offices, setOffices] = useState<Office[]>([]);
   const [loading, setLoading] = useState(true);
   const [editItem, setEditItem] = useState<Warehouse | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [officeID, setOfficeID] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user?.companyID) return;
-    load();
-  }, [user]);
-
-  async function load() {
-    if (!user?.companyID) return;
-    const snap = await getDocs(collection(db, "companies", user.companyID, "warehouses"));
+    const cid = user.companyID;
+    const [whSnap, officeSnap] = await Promise.all([
+      getDocs(collection(db, "companies", cid, "warehouses")),
+      getDocs(collection(db, "companies", cid, "offices")),
+    ]);
     setWarehouses(
-      snap.docs
-        .map((d) => ({ id: d.id, name: d.data().name, location: d.data().location ?? "" }))
+      whSnap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<Warehouse, "id">) }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+    setOffices(
+      officeSnap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<Office, "id">) }))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
     setLoading(false);
-  }
+  }, [user?.companyID]);
+
+  useEffect(() => {
+    if (user?.companyID) load();
+  }, [user?.companyID, load]);
 
   function openAdd() {
     setName("");
     setLocation("");
+    setOfficeID(null);
     setFormError("");
+    setConfirmDelete(false);
     setEditItem(null);
     setShowForm(true);
   }
@@ -46,27 +67,33 @@ export default function WarehousesPage() {
   function openEdit(wh: Warehouse) {
     setName(wh.name);
     setLocation(wh.location ?? "");
+    setOfficeID(wh.officeID ?? null);
     setFormError("");
+    setConfirmDelete(false);
     setEditItem(wh);
     setShowForm(true);
   }
 
   async function handleSave() {
-    if (!user?.companyID || !name.trim()) { setFormError("Name is required."); return; }
+    if (!user?.companyID || !name.trim()) {
+      setFormError("Name is required.");
+      return;
+    }
     setSaving(true);
     setFormError("");
     try {
-      const whName = name.trim();
-      const whLocation = location.trim() || undefined;
+      const data = {
+        name: name.trim(),
+        location: location.trim() || null,
+        officeID: officeID ?? null,
+      };
       if (editItem?.id) {
-        await updateDoc(doc(db, "companies", user.companyID, "warehouses", editItem.id), { name: whName, location: whLocation });
-        setWarehouses((prev) => prev.map((w) => w.id === editItem.id ? { ...w, name: whName, location: whLocation } : w).sort((a, b) => a.name.localeCompare(b.name)));
+        await updateDoc(doc(db, "companies", user.companyID, "warehouses", editItem.id), data);
       } else {
-        const docRef = await addDoc(collection(db, "companies", user.companyID, "warehouses"), { name: whName, location: whLocation });
-        setWarehouses((prev) => [...prev, { id: docRef.id, name: whName, location: whLocation }].sort((a, b) => a.name.localeCompare(b.name)));
+        await addDoc(collection(db, "companies", user.companyID, "warehouses"), data);
       }
       setShowForm(false);
-      setEditItem(null);
+      await load();
     } catch {
       setFormError("Failed to save.");
     } finally {
@@ -74,79 +101,180 @@ export default function WarehousesPage() {
     }
   }
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  /** Deleting a warehouse also clears its inventory subcollection. */
+  async function handleDelete() {
+    if (!user?.companyID || !editItem?.id) return;
+    setDeleting(true);
+    try {
+      const cid = user.companyID;
+      const invSnap = await getDocs(
+        collection(db, "companies", cid, "warehouses", editItem.id, "inventory")
+      );
+      if (!invSnap.empty) {
+        const batch = writeBatch(db);
+        invSnap.docs.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+      await deleteDoc(doc(db, "companies", cid, "warehouses", editItem.id));
+      setShowForm(false);
+      await load();
+    } catch {
+      setFormError("Failed to delete.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
+  }
+
+  const officeName = (id?: string | null) => offices.find((o) => o.id === id)?.name;
+  const officeColor = (id?: string | null) => offices.find((o) => o.id === id)?.colorHex;
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-2xl">
-      <div className="flex items-center gap-2 mb-1">
-        <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
-        <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span className="text-sm text-white">Warehouses</span>
-      </div>
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
+      {user?.isAdmin && (
+        <NavBarRight>
+          <NavCircleButton label="Add warehouse" onClick={openAdd}>
+            <PlusIcon className="w-[17px] h-[17px]" />
+          </NavCircleButton>
+        </NavBarRight>
+      )}
 
-      <div className="flex items-start justify-between mb-6 mt-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Warehouses</h2>
-          <p className="text-gray-400 mt-1 text-sm">{warehouses.length} warehouses</p>
+      <LargeTitle
+        title="Warehouses"
+        subtitle={`${warehouses.length} ${warehouses.length === 1 ? "Warehouse" : "Warehouses"}`}
+      />
+
+      {warehouses.length === 0 ? (
+        <div className="bg-[#1C1C1E] rounded-[14px] px-6 py-12 text-center text-[15px] text-[rgba(235,235,245,0.6)]">
+          No warehouses yet. Add one to get started.
         </div>
-        {user?.isAdmin && (
-          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Add Warehouse
-          </button>
-        )}
-      </div>
-
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-        {warehouses.length === 0 ? (
-          <p className="text-center text-gray-500 py-12 text-sm">No warehouses yet. Add one to get started.</p>
-        ) : (
-          <div className="divide-y divide-[#2a2f3e]">
-            {warehouses.map((wh) => (
-              <div key={wh.id} className="flex items-center justify-between px-5 py-4">
-                <div>
-                  <p className="text-sm font-medium text-white">{wh.name}</p>
-                  {wh.location && <p className="text-xs text-gray-500 mt-0.5">{wh.location}</p>}
-                </div>
+      ) : (
+        <Group>
+          {warehouses.map((wh, i) => (
+            <button
+              key={wh.id}
+              onClick={() => user?.isAdmin && openEdit(wh)}
+              className="w-full flex items-stretch pl-4 text-left active:bg-white/[0.06] transition-colors"
+            >
+              <span className="flex items-center pr-3 shrink-0">
+                <WarehouseIcon className="w-[22px] h-[22px] text-[#0A84FF]" />
+              </span>
+              <span
+                className={`flex-1 min-w-0 flex items-center gap-3 pr-3.5 py-3 ${
+                  i === warehouses.length - 1 ? "" : "border-b border-[#38383A]/70"
+                }`}
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[17px] font-semibold text-white leading-snug break-words">
+                    {wh.name}
+                  </span>
+                  {wh.location && (
+                    <span className="block text-[15px] text-[rgba(235,235,245,0.6)] leading-snug break-words">
+                      {wh.location}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1.5 mt-0.5 text-[15px] text-[rgba(235,235,245,0.6)]">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: officeColor(wh.officeID) ?? "rgba(235,235,245,0.3)" }}
+                    />
+                    {officeName(wh.officeID) ?? "Unassigned"}
+                  </span>
+                </span>
                 {user?.isAdmin && (
-                  <button onClick={() => openEdit(wh)} className="px-2.5 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Edit</button>
+                  <ChevronRightIcon className="w-[14px] h-[14px] text-[rgba(235,235,245,0.3)] shrink-0" />
                 )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              </span>
+            </button>
+          ))}
+        </Group>
+      )}
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-white">{editItem ? "Edit Warehouse" : "Add Warehouse"}</h3>
-              <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+        <FormSheet
+          title={editItem ? "Edit Warehouse" : "New Warehouse"}
+          onCancel={() => setShowForm(false)}
+          onSave={handleSave}
+          saveDisabled={!name.trim()}
+          saving={saving}
+        >
+          <div className="space-y-5">
+            <div>
+              <FieldLabel>Warehouse Name</FieldLabel>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={fieldCls}
+                placeholder="e.g. Bentonville"
+                autoFocus
+              />
             </div>
-            <div className="space-y-3 mb-5">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Name *</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Main Warehouse" autoFocus />
+            <div>
+              <FieldLabel>Location</FieldLabel>
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className={fieldCls}
+                placeholder="e.g. 11928 Callis Rd, Bentonville, AR 72712"
+              />
+            </div>
+            <div>
+              <FieldLabel>Office Assignment</FieldLabel>
+              <ChipSelect
+                value={officeID}
+                onChange={setOfficeID}
+                options={[
+                  { value: null, label: "Unassigned" },
+                  ...offices.map((o) => ({
+                    value: o.id!,
+                    label: o.name,
+                    dot: o.colorHex ?? "#0A84FF",
+                  })),
+                ]}
+              />
+            </div>
+
+            {formError && <p className="text-[#FF453A] text-[15px]">{formError}</p>}
+
+            {editItem && (
+              <div className="pt-1">
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="w-full py-3.5 rounded-[12px] text-[17px] font-medium bg-[#FF453A]/15 text-[#FF453A] active:bg-[#FF453A]/25 transition-colors"
+                  >
+                    Delete Warehouse
+                  </button>
+                ) : (
+                  <div className="bg-[#FF453A]/10 rounded-[12px] p-4">
+                    <p className="text-[15px] text-white mb-3 leading-snug">
+                      Delete “{editItem.name}” and all of its inventory records? This cannot be
+                      undone.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        className="flex-1 py-2.5 rounded-[10px] text-[15px] text-white bg-white/10 active:bg-white/15 transition-colors"
+                      >
+                        Keep
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="flex-1 py-2.5 rounded-[10px] text-[15px] font-semibold text-white bg-[#FF453A] active:opacity-80 transition-opacity disabled:opacity-50"
+                      >
+                        {deleting ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Location</label>
-                <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputCls} placeholder="e.g. 123 Main St" />
-              </div>
-              {formError && <p className="text-red-400 text-xs">{formError}</p>}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
-                {saving ? "Saving…" : editItem ? "Save Changes" : "Add Warehouse"}
-              </button>
-            </div>
+            )}
           </div>
-        </div>
+        </FormSheet>
       )}
     </div>
   );

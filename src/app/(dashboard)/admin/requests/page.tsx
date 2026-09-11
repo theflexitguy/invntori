@@ -5,8 +5,24 @@ import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { NavBarTitle, NavBarRight } from "@/components/layout/NavBarSlot";
+import {
+  TextAction,
+  SelectRow,
+  Pill,
+  NavPillButton,
+  type Tint,
+} from "@/components/ui/ios";
+import {
+  ChevronDownIcon,
+  BuildingIcon,
+  ClockIcon,
+  PencilSquareIcon,
+  HourglassIcon,
+  CheckCircleIcon,
+  SyncIcon,
+} from "@/components/layout/nav";
 import type { InventoryRequest, Warehouse } from "@/lib/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -29,83 +45,49 @@ function parseFirestoreDate(
   return null;
 }
 
-function formatDate(ts: unknown): string {
-  const d = parseFirestoreDate(ts as Parameters<typeof parseFirestoreDate>[0]);
-  if (!d) return "";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
+/** "Sep 8, 2026 at 7:29 AM", the way the native queue prints a timestamp. */
 function formatDateTime(ts: unknown): string {
   const d = parseFirestoreDate(ts as Parameters<typeof parseFirestoreDate>[0]);
   if (!d) return "";
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${date} at ${time}`;
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+function formatDate(ts: unknown): string {
+  const d = parseFirestoreDate(ts as Parameters<typeof parseFirestoreDate>[0]);
+  if (!d) return "";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
-const STATUS_TABS = ["All", "Pending", "Completed"] as const;
+const STATUS_TABS = ["All", "Pending", "Completed", "Returned"] as const;
 type StatusTab = (typeof STATUS_TABS)[number];
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+const statusTint: Record<string, Tint> = {
+  Pending: "orange",
+  Completed: "green",
+  Returned: "red",
+};
 
-function StatusPill({ status }: { status: string }) {
-  const variants: Record<string, { bg: string; text: string; border: string; glow: string; dot: string }> = {
-    Pending: {
-      bg: "bg-amber-400/10",
-      text: "text-amber-400",
-      border: "border-amber-400/25",
-      glow: "shadow-amber-400/10",
-      dot: "bg-amber-400",
-    },
-    Completed: {
-      bg: "bg-emerald-400/10",
-      text: "text-emerald-400",
-      border: "border-emerald-400/25",
-      glow: "shadow-emerald-400/10",
-      dot: "bg-emerald-400",
-    },
-    Returned: {
-      bg: "bg-rose-400/10",
-      text: "text-rose-400",
-      border: "border-rose-400/25",
-      glow: "shadow-rose-400/10",
-      dot: "bg-rose-400",
-    },
-  };
-  const v = variants[status] ?? {
-    bg: "bg-gray-400/10",
-    text: "text-gray-400",
-    border: "border-gray-400/25",
-    glow: "shadow-gray-400/10",
-    dot: "bg-gray-400",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border shadow-sm ${v.bg} ${v.text} ${v.border} ${v.glow}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${v.dot}`} />
-      {status}
-    </span>
-  );
+function StatusGlyph({ status }: { status: string }) {
+  if (status === "Completed") return <CheckCircleIcon className="w-[11px] h-[11px]" />;
+  if (status === "Returned") return <SyncIcon className="w-[11px] h-[11px]" />;
+  return <HourglassIcon className="w-[11px] h-[11px]" />;
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function AdminRequestsPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
 
   const [requests, setRequests] = useState<InventoryRequest[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const [tab, setTab] = useState<StatusTab>("Pending");
-  const [search, setSearch] = useState("");
+  const [warehouseFilter, setWarehouseFilter] = useState("All");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Admin guard
@@ -124,46 +106,43 @@ export default function AdminRequestsPage() {
   async function load() {
     if (!user?.companyID) return;
     const cid = user.companyID;
-    const [reqSnap, whSnap] = await Promise.all([
-      getDocs(
-        query(
-          collection(db, "companies", cid, "inventoryRequests"),
-          orderBy("timestamp", "desc")
-        )
-      ),
-      getDocs(collection(db, "companies", cid, "warehouses")),
-    ]);
-    setRequests(
-      reqSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<InventoryRequest, "id">) }))
-    );
-    setWarehouses(
-      whSnap.docs.map((d) => ({ id: d.id, name: d.data().name as string }))
-    );
-    setLoading(false);
+    setRefreshing(true);
+    try {
+      const [reqSnap, whSnap] = await Promise.all([
+        getDocs(
+          query(collection(db, "companies", cid, "inventoryRequests"), orderBy("timestamp", "desc"))
+        ),
+        getDocs(collection(db, "companies", cid, "warehouses")),
+      ]);
+      setRequests(
+        reqSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<InventoryRequest, "id">) }))
+      );
+      setWarehouses(
+        whSnap.docs
+          .map((d) => ({ id: d.id, name: d.data().name as string }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
   }
 
+  const warehouseName = useMemo(() => {
+    const map: Record<string, string> = {};
+    warehouses.forEach((w) => {
+      if (w.id) map[w.id] = w.name;
+    });
+    return map;
+  }, [warehouses]);
+
   const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
     return requests.filter((r) => {
       if (tab !== "All" && r.status !== tab) return false;
-      if (!q) return true;
-      if (r.submittedBy.toLowerCase().includes(q)) return true;
-      if (r.items?.some((i) => i.productName.toLowerCase().includes(q))) return true;
-      return false;
+      if (warehouseFilter !== "All" && r.warehouseID !== warehouseFilter) return false;
+      return true;
     });
-  }, [requests, tab, search]);
-
-  const counts = useMemo(
-    () =>
-      STATUS_TABS.reduce(
-        (acc, t) => {
-          acc[t] = t === "All" ? requests.length : requests.filter((r) => r.status === t).length;
-          return acc;
-        },
-        {} as Record<string, number>
-      ),
-    [requests]
-  );
+  }, [requests, tab, warehouseFilter]);
 
   if (!user?.isAdmin) return null;
 
@@ -176,313 +155,161 @@ export default function AdminRequestsPage() {
   }
 
   return (
-    <div className="p-6 xl:p-8 w-full max-w-3xl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 mb-1">
-        <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">
-          Admin
-        </Link>
-        <svg
-          className="w-3 h-3 text-gray-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-        <span className="text-sm text-white">Request Queue</span>
-      </div>
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
+      {/* The native queue keeps its title inline and Logout in the bar */}
+      <NavBarTitle>
+        <span className="text-[17px] font-semibold text-white truncate">Pending Requests</span>
+      </NavBarTitle>
+      <NavBarRight>
+        <NavPillButton onClick={signOut}>Logout</NavPillButton>
+      </NavBarRight>
 
-      {/* Header */}
-      <div className="mt-4 mb-6">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold text-white">Pending Requests</h2>
-          {counts["Pending"] > 0 && (
-            <span className="text-sm font-medium px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400 border border-amber-400/20">
-              {counts["Pending"]}
-            </span>
-          )}
-        </div>
-        <p className="text-gray-400 mt-1 text-sm">
-          All inventory requests from every employee
-        </p>
-      </div>
-
-      {/* Tabs + Search row */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="flex gap-1 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg p-1 w-fit">
-          {STATUS_TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                tab === t
-                  ? "bg-[#35B2FF]/20 text-[#35B2FF]"
-                  : "text-gray-500 hover:text-white"
-              }`}
-            >
-              {t}
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  tab === t ? "bg-[#35B2FF]/30" : "bg-white/5"
-                }`}
-              >
-                {counts[t]}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="relative flex-1 min-w-0">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 -mx-2 mb-2">
+        <TextAction
+          onClick={() => setFiltersOpen((v) => !v)}
+          icon={
+            <ChevronDownIcon
+              className={`w-[17px] h-[17px] transition-transform ${filtersOpen ? "rotate-180" : ""}`}
             />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by employee or product…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] transition-colors"
+          }
+        >
+          {filtersOpen ? "Hide Filters" : "Show Filters"}
+        </TextAction>
+        <TextAction
+          onClick={() => load()}
+          icon={<SyncIcon className={`w-[16px] h-[16px] ${refreshing ? "animate-spin" : ""}`} />}
+        >
+          Refresh
+        </TextAction>
+      </div>
+
+      {filtersOpen && (
+        <div className="space-y-2 mb-4">
+          <SelectRow
+            label="Warehouse"
+            value={warehouseFilter}
+            onChange={setWarehouseFilter}
+            options={[
+              { value: "All", label: "All" },
+              ...warehouses.map((w) => ({ value: w.id!, label: w.name })),
+            ]}
+          />
+          <SelectRow
+            label="Status"
+            value={tab}
+            onChange={(v) => setTab(v as StatusTab)}
+            options={STATUS_TABS.map((t) => ({ value: t, label: t }))}
           />
         </div>
-      </div>
+      )}
 
-      {/* Request list */}
-      <div className="space-y-2.5">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl">
-            <div className="w-12 h-12 rounded-full bg-[#2a2f3e] flex items-center justify-center mb-3">
-              <svg
-                className="w-5 h-5 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-            </div>
-            <p className="text-gray-400 font-medium">No requests found</p>
-            <p className="text-gray-600 text-sm mt-1">
-              {search ? "Try adjusting your search" : `No ${tab === "All" ? "" : tab.toLowerCase() + " "}requests`}
-            </p>
-          </div>
-        ) : (
-          filtered.map((r) => {
-            const wh = warehouses.find((w) => w.id === r.warehouseID);
+      {/* Queue */}
+      {filtered.length === 0 ? (
+        <p className="text-[17px] text-[rgba(235,235,245,0.6)] py-16 text-center">
+          No requests found.
+        </p>
+      ) : (
+        <div>
+          {filtered.map((r, i) => {
             const isExpanded = expanded === r.id;
-            const itemCount = r.items?.length ?? 0;
+            const items = r.items ?? [];
+            const first = items[0];
+            const firstLabel = first
+              ? `${first.quantity} ${first.productName}${first.unit ? ` (${first.unit})` : ""}`
+              : "No items";
 
             return (
               <div
                 key={r.id}
-                className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden transition-colors hover:border-[#35B2FF]/20"
+                className={i === filtered.length - 1 ? "" : "border-b border-[#38383A]/70"}
               >
-                {/* Card header — clickable */}
                 <button
-                  className="w-full px-5 py-4 text-left hover:bg-white/[0.015] transition-colors"
                   onClick={() => setExpanded(isExpanded ? null : r.id!)}
+                  className="w-full text-left py-3.5 flex items-start gap-3 active:bg-white/[0.04] transition-colors"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
-                        <StatusPill status={r.status} />
-                        <span className="text-white font-medium text-sm">{r.submittedBy}</span>
-                      </div>
-
-                      <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
-                        {/* Timestamp */}
-                        {r.timestamp && (
-                          <span className="flex items-center gap-1">
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            {formatDateTime(r.timestamp)}
-                          </span>
-                        )}
-
-                        {/* Warehouse */}
-                        {wh && (
-                          <span className="flex items-center gap-1">
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                              />
-                            </svg>
-                            {wh.name}
-                          </span>
-                        )}
-
-                        {/* Item count */}
-                        <span className="flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                            />
-                          </svg>
-                          {itemCount} {itemCount === 1 ? "item" : "items"}
-                        </span>
-                      </div>
+                  {/* Status + origin */}
+                  <div className="min-w-0 flex-1">
+                    <Pill tint={statusTint[r.status] ?? "gray"}>
+                      <span className="inline-flex items-center gap-1">
+                        <StatusGlyph status={r.status} />
+                        {r.status}
+                      </span>
+                    </Pill>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <BuildingIcon className="w-[14px] h-[14px] text-[#0A84FF] shrink-0" />
+                      <span className="text-[15px] text-[rgba(235,235,245,0.6)] truncate">
+                        {r.warehouseID ? (warehouseName[r.warehouseID] ?? "Unknown warehouse") : "No warehouse"}
+                      </span>
                     </div>
+                    <p className="text-[15px] text-white mt-1 truncate">{r.submittedBy}</p>
+                  </div>
 
-                    <svg
-                      className={`w-4 h-4 text-gray-500 shrink-0 mt-0.5 transition-transform duration-200 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                  {/* When + what */}
+                  <div className="shrink-0 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <ClockIcon className="w-[13px] h-[13px] text-[rgba(235,235,245,0.6)]" />
+                      <span className="text-[13px] text-[rgba(235,235,245,0.6)]">
+                        {formatDateTime(r.timestamp)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5 mt-1.5">
+                      <PencilSquareIcon className="w-[13px] h-[13px] text-[rgba(235,235,245,0.6)]" />
+                      <span className="text-[13px] text-[rgba(235,235,245,0.6)] max-w-[180px] truncate">
+                        {firstLabel}
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-[rgba(235,235,245,0.3)] mt-1">
+                      {items.length} item{items.length !== 1 ? "s" : ""} requested
+                    </p>
                   </div>
                 </button>
 
-                {/* Expanded detail */}
                 {isExpanded && (
-                  <div className="border-t border-[#2a2f3e] bg-[#0f1117]/50 px-5 py-4">
-                    {/* Item list */}
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      Items
-                    </p>
-                    <div className="space-y-0 rounded-lg border border-[#2a2f3e] overflow-hidden mb-4">
-                      {r.items?.map((item, i) => (
+                  <div className="pb-4">
+                    <div className="bg-[#1C1C1E] rounded-[12px] px-4 py-1">
+                      {items.map((item, idx) => (
                         <div
-                          key={i}
-                          className="flex items-center justify-between px-4 py-2.5 text-sm border-b border-[#2a2f3e] last:border-0 hover:bg-white/[0.015]"
+                          key={idx}
+                          className={`flex items-center justify-between gap-3 py-2.5 ${
+                            idx === items.length - 1 ? "" : "border-b border-[#38383A]/70"
+                          }`}
                         >
-                          <span className="text-white">{item.productName}</span>
-                          <span className="text-gray-400 font-medium tabular-nums">
+                          <span className="text-[17px] text-white min-w-0 break-words">
+                            {item.productName}
+                          </span>
+                          <span className="text-[15px] text-[rgba(235,235,245,0.6)] shrink-0">
                             {item.quantity}
-                            {item.unit ? <span className="text-gray-500 font-normal ml-1">{item.unit}</span> : null}
+                            {item.unit ? ` ${item.unit}` : ""}
                           </span>
                         </div>
                       ))}
                     </div>
 
-                    {/* Notes */}
                     {r.notes && (
-                      <div className="mb-4 flex items-start gap-2 bg-white/[0.03] border border-[#2a2f3e] rounded-lg px-3 py-2.5">
-                        <svg
-                          className="w-3.5 h-3.5 text-gray-500 mt-0.5 shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                          />
-                        </svg>
-                        <p className="text-xs text-gray-400">{r.notes}</p>
-                      </div>
+                      <p className="text-[15px] text-[rgba(235,235,245,0.6)] mt-3 px-1 leading-snug">
+                        {r.notes}
+                      </p>
                     )}
 
-                    {/* Completion info */}
                     {r.status === "Completed" && (r.completedByName ?? r.completedBy) && (
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-400">
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        Completed by{" "}
-                        <span className="font-medium">
-                          {r.completedByName ?? r.completedBy}
-                        </span>
-                        {r.completedAt && (
-                          <span className="text-emerald-600">
-                            {" "}
-                            · {formatDate(r.completedAt)}
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-[13px] text-[#30D158] mt-3 px-1">
+                        Completed by {r.completedByName ?? r.completedBy}
+                        {r.completedAt ? ` · ${formatDate(r.completedAt)}` : ""}
+                      </p>
                     )}
-
-                    {/* Returned info */}
                     {r.status === "Returned" && (
-                      <div className="flex items-center gap-1.5 text-xs text-rose-400">
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                          />
-                        </svg>
-                        Returned
-                        {r.completedAt && (
-                          <span className="text-rose-600"> · {formatDate(r.completedAt)}</span>
-                        )}
-                      </div>
+                      <p className="text-[13px] text-[#FF453A] mt-3 px-1">
+                        Returned{r.completedAt ? ` · ${formatDate(r.completedAt)}` : ""}
+                      </p>
                     )}
                   </div>
                 )}
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 }

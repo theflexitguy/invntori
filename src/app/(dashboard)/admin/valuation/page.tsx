@@ -102,31 +102,31 @@ export default function ValuationPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
 
   return (
-    <div className="p-6 xl:p-8 w-full">
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
       <div className="flex items-center gap-2 mb-1">
         <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
         <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         <span className="text-sm text-white">Inventory Valuation</span>
       </div>
 
-      <div className="mb-6 mt-4">
-        <h2 className="text-2xl font-bold text-white">Inventory Valuation</h2>
-        <p className="text-gray-400 mt-1 text-sm">Total value based on current stock × unit cost per product</p>
+      <div className="mb-5 sm:mb-6 mt-4">
+        <h1 className="ios-large-title text-white">Inventory Valuation</h1>
+        <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">Total value based on current stock × unit cost per product</p>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-4">
           <p className="text-xs text-gray-500 mb-1">Total Value</p>
-          <p className="text-2xl font-bold text-white">{totalValue.toLocaleString("en-US", { style: "currency", currency: "USD" })}</p>
+          <p className="text-xl sm:text-2xl font-bold text-white">{totalValue.toLocaleString("en-US", { style: "currency", currency: "USD" })}</p>
         </div>
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-4">
           <p className="text-xs text-gray-500 mb-1">Products in Stock</p>
-          <p className="text-2xl font-bold text-white">{rows.length}</p>
+          <p className="text-xl sm:text-2xl font-bold text-white">{rows.length}</p>
         </div>
-        <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl p-4">
+        <div className="bg-[#1C1C1E] rounded-[14px] p-4">
           <p className="text-xs text-gray-500 mb-1">Total Units</p>
-          <p className="text-2xl font-bold text-white">{totalItems.toLocaleString()}</p>
+          <p className="text-xl sm:text-2xl font-bold text-white">{totalItems.toLocaleString()}</p>
         </div>
       </div>
 
@@ -142,42 +142,48 @@ export default function ValuationPage() {
         </div>
       )}
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
+      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
         {rows.length === 0 ? (
           <p className="text-center text-gray-500 py-12 text-sm">No in-stock products found.</p>
         ) : (
           <div>
-            <div className="grid grid-cols-12 px-6 py-3 border-b border-[#2a2f3e]">
+            {/* Column headers — desktop only; each row reads as a card on phones */}
+            <div className="hidden sm:grid grid-cols-12 px-6 py-3 border-b border-[#2C2C2E]">
               <div className="col-span-5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</div>
               <div className="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Qty</div>
               <div className="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Unit Cost</div>
               <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total Value</div>
             </div>
-            <div className="divide-y divide-[#2a2f3e]">
+            <div className="divide-y divide-[#38383A]">
               {rows.map((row) => {
                 const isExpanded = expandedRow === row.productId;
                 return (
                   <div key={row.productId}>
                     <button
-                      className="w-full grid grid-cols-12 px-6 py-3.5 hover:bg-white/[0.02] transition-colors text-left"
+                      className="w-full flex flex-col sm:grid sm:grid-cols-12 gap-1 sm:gap-0 px-4 sm:px-6 py-3.5 hover:bg-white/[0.02] active:bg-white/[0.04] transition-colors text-left"
                       onClick={() => setExpandedRow(isExpanded ? null : row.productId)}
                     >
-                      <div className="col-span-5">
-                        <p className="text-sm font-medium text-white">{row.productName}</p>
+                      <div className="sm:col-span-5 min-w-0">
+                        <p className="text-sm font-medium text-white break-words">{row.productName}</p>
                         {row.category && <p className="text-xs text-gray-500 mt-0.5">{row.category}</p>}
                       </div>
-                      <div className="col-span-2 text-right">
+
+                      {/* Phone: one compact metric line. Desktop: aligned columns. */}
+                      <div className="sm:col-span-2 flex items-center gap-1 sm:justify-end">
+                        <span className="text-xs text-gray-500 sm:hidden">Qty</span>
                         <span className="text-sm text-gray-300">{row.totalQuantity.toLocaleString()}</span>
                         {row.unit && <span className="text-xs text-gray-500 ml-1">{row.unit}</span>}
                       </div>
-                      <div className="col-span-2 text-right">
+                      <div className="sm:col-span-2 flex items-center gap-1 sm:justify-end">
+                        <span className="text-xs text-gray-500 sm:hidden">Unit cost</span>
                         {row.unitCost > 0 ? (
                           <span className="text-sm text-gray-300">{row.unitCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>
                         ) : (
                           <span className="text-sm text-gray-600">—</span>
                         )}
                       </div>
-                      <div className="col-span-3 text-right flex items-center justify-end gap-2">
+                      <div className="sm:col-span-3 flex items-center gap-2 sm:justify-end">
+                        <span className="text-xs text-gray-500 sm:hidden">Total</span>
                         <span className={`text-sm font-semibold ${row.totalValue > 0 ? "text-white" : "text-gray-500"}`}>
                           {row.totalValue.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                         </span>
@@ -189,13 +195,13 @@ export default function ValuationPage() {
                       </div>
                     </button>
                     {isExpanded && row.byWarehouse.length > 1 && (
-                      <div className="border-t border-[#2a2f3e] bg-[#0f1117] px-6 py-2">
+                      <div className="border-t border-[#2C2C2E] bg-[#000000] px-4 sm:px-6 py-2">
                         {row.byWarehouse.map((wh) => (
-                          <div key={wh.warehouseName} className="grid grid-cols-12 py-2">
-                            <div className="col-span-5 text-xs text-gray-500 pl-4">{wh.warehouseName}</div>
-                            <div className="col-span-2 text-right text-xs text-gray-400">{wh.quantity.toLocaleString()}</div>
-                            <div className="col-span-2 text-right text-xs text-gray-600">—</div>
-                            <div className="col-span-3 text-right text-xs text-gray-400">
+                          <div key={wh.warehouseName} className="flex sm:grid sm:grid-cols-12 justify-between gap-2 py-2">
+                            <div className="sm:col-span-5 text-xs text-gray-500 sm:pl-4 min-w-0 break-words">{wh.warehouseName}</div>
+                            <div className="sm:col-span-2 sm:text-right text-xs text-gray-400 shrink-0">{wh.quantity.toLocaleString()}</div>
+                            <div className="hidden sm:block sm:col-span-2 text-right text-xs text-gray-600">—</div>
+                            <div className="sm:col-span-3 sm:text-right text-xs text-gray-400 shrink-0">
                               {wh.value.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                             </div>
                           </div>
@@ -206,11 +212,11 @@ export default function ValuationPage() {
                 );
               })}
             </div>
-            <div className="grid grid-cols-12 px-6 py-4 border-t border-[#2a2f3e] bg-[#0f1117]">
-              <div className="col-span-5 text-sm font-semibold text-white">Total</div>
-              <div className="col-span-2 text-right text-sm text-gray-300">{totalItems.toLocaleString()}</div>
-              <div className="col-span-2" />
-              <div className="col-span-3 text-right text-sm font-bold text-white">
+            <div className="flex sm:grid sm:grid-cols-12 justify-between px-4 sm:px-6 py-4 border-t border-[#2C2C2E] bg-[#000000]">
+              <div className="sm:col-span-5 text-sm font-semibold text-white">Total</div>
+              <div className="sm:col-span-2 sm:text-right text-sm text-gray-300">{totalItems.toLocaleString()}</div>
+              <div className="hidden sm:block sm:col-span-2" />
+              <div className="sm:col-span-3 sm:text-right text-sm font-bold text-white">
                 {totalValue.toLocaleString("en-US", { style: "currency", currency: "USD" })}
               </div>
             </div>

@@ -5,7 +5,11 @@ import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import { Badge } from "@/components/ui/Badge";
+import { Sheet, SheetActions, PrimaryButton } from "@/components/ui/Sheet";
+import { PlusIcon } from "@/components/ui/PageHeader";
+import { LargeTitle, SearchField, Group, Pill, NavCircleButton, type Tint } from "@/components/ui/ios";
+import { NavBarLeft, NavBarRight } from "@/components/layout/NavBarSlot";
+import { FilterCircleIcon, ChevronRightIcon, equipmentGlyph } from "@/components/layout/nav";
 import Link from "next/link";
 import type { Equipment } from "@/lib/types";
 
@@ -19,9 +23,9 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
   { key: "retired", label: "Retired" },
 ];
 
-const statusVariant: Record<string, "green" | "blue" | "yellow" | "red" | "gray"> = {
+const statusTint: Record<string, Tint> = {
   available: "green",
-  checkedOut: "blue",
+  checkedOut: "orange",
   inRepair: "yellow",
   retired: "gray",
 };
@@ -40,6 +44,7 @@ export default function EquipmentPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.companyID) return;
@@ -94,84 +99,112 @@ export default function EquipmentPage() {
   }
 
   return (
-    <div className="p-6 xl:p-8 w-full">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Equipment</h2>
-          <p className="text-gray-400 mt-1 text-sm">{filtered.length} items</p>
-        </div>
-        {user?.isAdmin && (
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Add Equipment
-          </button>
-        )}
-      </div>
+    <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full">
+      {/* Nav bar controls, the way the native Equipment tab carries them */}
+      <NavBarLeft>
+        <NavCircleButton
+          label={filtersOpen ? "Hide filters" : "Show filters"}
+          onClick={() => setFiltersOpen((v) => !v)}
+          tint={statusFilter === "All" ? "white" : "blue"}
+        >
+          <FilterCircleIcon className="w-[22px] h-[22px]" />
+        </NavCircleButton>
+      </NavBarLeft>
+      {user?.isAdmin && (
+        <NavBarRight>
+          <NavCircleButton label="Add equipment" onClick={() => setShowAdd(true)}>
+            <PlusIcon className="w-[17px] h-[17px]" />
+          </NavCircleButton>
+        </NavBarRight>
+      )}
 
-      {/* Status filter tabs */}
-      <div className="flex gap-1 mb-5 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg p-1 w-fit flex-wrap">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setStatusFilter(tab.key)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
-              statusFilter === tab.key ? "bg-[#35B2FF]/20 text-[#35B2FF]" : "text-gray-500 hover:text-white"
-            }`}
-          >
-            {tab.label}
-            {counts[tab.key] !== undefined && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? "bg-[#35B2FF]/30" : "bg-white/5"}`}>
-                {counts[tab.key]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <LargeTitle title="Equipment" />
 
-      <div className="mb-5">
-        <input
-          type="search"
-          placeholder="Search by name, category, or serial…"
+      <div className="mb-3">
+        <SearchField
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF] w-72"
+          onChange={setSearch}
+          placeholder="Search by name or category"
+          shape="pill"
         />
       </div>
 
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#2a2f3e]">
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Serial #</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Holder</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#2a2f3e]">
-            {filtered.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">No equipment found</td></tr>
-            ) : (
-              filtered.map((eq) => (
-                <tr key={eq.id} className={`hover:bg-white/[0.02] transition-colors ${eq.status === "retired" ? "opacity-50" : ""}`}>
-                  <td className="px-6 py-3.5">
-                    <Link href={`/equipment/${eq.id}`} className="font-medium text-white hover:text-[#35B2FF] transition-colors">
+      {/* Status filter — collapsed behind the nav bar's filter button */}
+      {filtersOpen && (
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 mb-3 overflow-x-auto no-scrollbar">
+          <div className="inline-flex gap-1 bg-[#1C1C1E] rounded-[12px] p-1">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setStatusFilter(tab.key)}
+                className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
+                  statusFilter === tab.key
+                    ? "bg-[#0A84FF]/20 text-[#0A84FF]"
+                    : "text-[rgba(235,235,245,0.6)]"
+                }`}
+              >
+                {tab.label}
+                {counts[tab.key] !== undefined && (
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${
+                    statusFilter === tab.key ? "bg-[#0A84FF]/25" : "bg-white/10"
+                  }`}>
+                    {counts[tab.key]}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="bg-[#1C1C1E] rounded-[14px] px-6 py-12 text-center text-[15px] text-[rgba(235,235,245,0.6)]">
+          No equipment found
+        </div>
+      ) : (
+        <Group>
+          {filtered.map((eq, i) => {
+            const Glyph = equipmentGlyph(eq.category);
+            const checkedOut = eq.status === "checkedOut";
+            return (
+              <Link
+                key={eq.id}
+                href={`/equipment/${eq.id}`}
+                className={`w-full flex items-stretch pl-4 active:bg-white/[0.06] transition-colors ${
+                  eq.status === "retired" ? "opacity-50" : ""
+                }`}
+              >
+                <span className="flex items-center pr-3 shrink-0">
+                  <Glyph className="w-[24px] h-[24px] text-[#0A84FF]" />
+                </span>
+                <span
+                  className={`flex-1 min-w-0 flex items-center gap-3 pr-3.5 py-3 ${
+                    i === filtered.length - 1 ? "" : "border-b border-[#38383A]/70"
+                  }`}
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[17px] font-semibold text-white leading-snug break-words">
                       {eq.name}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-3.5 text-gray-400">{eq.category ?? "—"}</td>
-                  <td className="px-6 py-3.5 text-gray-400 font-mono text-xs">{eq.serialNumber ?? "—"}</td>
-                  <td className="px-6 py-3.5">
-                    <Badge variant={statusVariant[eq.status] ?? "gray"}>{statusLabel[eq.status] ?? eq.status}</Badge>
-                  </td>
-                  <td className="px-6 py-3.5 text-gray-400">{eq.currentHolderName ?? "—"}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                    </span>
+                    <span className="block text-[15px] text-[rgba(235,235,245,0.6)] leading-snug">
+                      {eq.category ?? "Uncategorized"}
+                    </span>
+                    {checkedOut && eq.currentHolderName && (
+                      <span className="block text-[15px] text-[#FF9F0A] leading-snug">
+                        With {eq.currentHolderName}
+                      </span>
+                    )}
+                  </span>
+                  <Pill tint={statusTint[eq.status] ?? "gray"}>
+                    {statusLabel[eq.status] ?? eq.status}
+                  </Pill>
+                  <ChevronRightIcon className="w-[14px] h-[14px] text-[rgba(235,235,245,0.3)] shrink-0" />
+                </span>
+              </Link>
+            );
+          })}
+        </Group>
+      )}
 
       {showAdd && <AddEquipmentModal onSave={addEquipment} onClose={() => setShowAdd(false)} />}
     </div>
@@ -185,7 +218,7 @@ function AddEquipmentModal({ onSave, onClose }: { onSave: (name: string, categor
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
+  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
 
   async function handleSave() {
     setSaving(true);
@@ -194,27 +227,23 @@ function AddEquipmentModal({ onSave, onClose }: { onSave: (name: string, categor
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-white">Add Equipment</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="space-y-3 mb-5">
-          <div><label className="block text-xs text-gray-500 mb-1">Name *</label><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Backpack Sprayer" /></div>
-          <div><label className="block text-xs text-gray-500 mb-1">Category *</label><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Sprayer, Tool, Ladder" /></div>
-          <div><label className="block text-xs text-gray-500 mb-1">Serial Number</label><input value={serial} onChange={(e) => setSerial(e.target.value)} className={inputCls} placeholder="Optional" /></div>
-          <div><label className="block text-xs text-gray-500 mb-1">Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-16`} placeholder="Optional" /></div>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm border border-[#2a2f3e] text-gray-400 hover:text-white transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={!name.trim() || !category.trim() || saving} className="flex-1 py-2 rounded-lg text-sm font-medium bg-[#35B2FF]/15 text-[#35B2FF] border border-[#35B2FF]/20 hover:bg-[#35B2FF]/25 transition-colors disabled:opacity-50">
+    <Sheet
+      title="Add Equipment"
+      onClose={onClose}
+      footer={
+        <SheetActions onCancel={onClose}>
+          <PrimaryButton onClick={handleSave} disabled={!name.trim() || !category.trim() || saving}>
             {saving ? "Saving…" : "Add Equipment"}
-          </button>
-        </div>
+          </PrimaryButton>
+        </SheetActions>
+      }
+    >
+      <div className="space-y-3">
+        <div><label className="block text-xs text-gray-500 mb-1">Name *</label><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Backpack Sprayer" /></div>
+        <div><label className="block text-xs text-gray-500 mb-1">Category *</label><input value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} placeholder="e.g. Sprayer, Tool, Ladder" /></div>
+        <div><label className="block text-xs text-gray-500 mb-1">Serial Number</label><input value={serial} onChange={(e) => setSerial(e.target.value)} className={inputCls} placeholder="Optional" /></div>
+        <div><label className="block text-xs text-gray-500 mb-1">Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={`${inputCls} resize-none h-20`} placeholder="Optional" /></div>
       </div>
-    </div>
+    </Sheet>
   );
 }
