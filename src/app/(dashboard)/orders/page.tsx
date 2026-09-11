@@ -1,27 +1,40 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import {
+  collection, getDocs, query, orderBy, doc, serverTimestamp,
+  updateDoc, writeBatch, increment,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import type { Product } from "@/lib/types";
 
-type POStatus = "draft" | "submitted" | "approved" | "Pending" | "PartiallyReceived" | "Completed" | "received" | "cancelled";
+// ── Types ──────────────────────────────────────────────────────────────────
 
-interface PurchaseOrderItem { productName: string; quantity: number; unit?: string; unitCost?: number; }
+interface PurchaseOrderItem {
+  productID?: string;
+  productName: string;
+  quantity: number;
+  qtyReceived?: number;
+  unit?: string;
+  unitCost?: number;
+}
 
 interface PurchaseOrder {
   id: string;
   vendorName: string;
-  status: POStatus | string;
+  status: string;
   vendorRef?: string;
   notes?: string;
   createdAt?: Date;
   expectedDate?: Date;
   totalCost?: number;
+  warehouseID?: string;
   items: PurchaseOrderItem[];
 }
+
+interface Warehouse { id: string; name: string; }
 
 function parseDate(val: unknown): Date | undefined {
   if (!val) return undefined;
@@ -52,12 +65,15 @@ type StatusTab = (typeof STATUS_TABS)[number];
 export default function OrdersPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<StatusTab>("Pending");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  // Lazy-loaded lines from subcollection (for iOS-created POs that have no items array)
+  const [subcollectionLines, setSubcollectionLines] = useState<Record<string, PurchaseOrderItem[]>>({});
 
   useEffect(() => {
     if (!user?.companyID) return;
@@ -67,7 +83,11 @@ export default function OrdersPage() {
   async function load() {
     if (!user?.companyID) return;
     const cid = user.companyID;
-    const snap = await getDocs(query(collection(db, "companies", cid, "purchaseOrders"), orderBy("createdAt", "desc")));
+    const [snap, whSnap] = await Promise.all([
+      getDocs(query(collection(db, "companies", cid, "purchaseOrders"), orderBy("createdAt", "desc"))),
+      getDocs(collection(db, "companies", cid, "warehouses")),
+    ]);
+    setWarehouses(whSnap.docs.map((d) => ({ id: d.id, name: (d.data().name as string | undefined) ?? d.id })));
     const loaded: PurchaseOrder[] = snap.docs.map((d) => {
       const raw = d.data();
       return {
@@ -79,6 +99,7 @@ export default function OrdersPage() {
         createdAt: parseDate(raw.createdAt),
         expectedDate: parseDate(raw.expectedDate),
         totalCost: typeof raw.totalCost === "number" ? raw.totalCost : undefined,
+        warehouseID: raw.warehouseID,
         items: Array.isArray(raw.items) ? raw.items : [],
       };
     });
@@ -86,14 +107,49 @@ export default function OrdersPage() {
     setLoading(false);
   }
 
-  async function createOrder(vendorName: string, vendorRef: string, items: PurchaseOrderItem[], expectedDate: string, notes: string) {
+  async function handleExpand(orderId: string) {
+    if (expanded === orderId) { setExpanded(null); return; }
+    setExpanded(orderId);
+    const order = orders.find((o) => o.id === orderId);
+    // If order has no items array (iOS-created), lazy-load from lines subcollection
+    if (order && order.items.length === 0 && !subcollectionLines[orderId] && user?.companyID) {
+      const linesSnap = await getDocs(collection(db, "companies", user.companyID, "purchaseOrders", orderId, "lines"));
+      const lines: PurchaseOrderItem[] = linesSnap.docs.map((d) => ({
+        productID: d.data().productID as string | undefined,
+        productName: (d.data().productName as string | undefined) ?? "",
+        quantity: (d.data().qtyOrdered as number | undefined) ?? 0,
+        qtyReceived: (d.data().qtyReceived as number | undefined) ?? 0,
+        unit: d.data().unit as string | undefined,
+      }));
+      setSubcollectionLines((prev) => ({ ...prev, [orderId]: lines }));
+    }
+  }
+
+  async function createOrder(
+    vendorName: string, vendorRef: string, warehouseID: string,
+    items: { productID: string; productName: string; quantity: number; unit: string; unitCost: string }[],
+    expectedDate: string, notes: string,
+  ) {
     if (!user?.companyID) return;
     const cid = user.companyID;
-    const total = items.reduce((sum, i) => sum + (i.unitCost ?? 0) * i.quantity, 0);
-    const data: Record<string, unknown> = {
+    const validItems = items.filter((i) => i.productID && i.productName.trim() && i.quantity > 0);
+    const total = validItems.reduce((sum, i) => sum + (parseFloat(i.unitCost) || 0) * i.quantity, 0);
+
+    const batch = writeBatch(db);
+    const poRef = doc(collection(db, "companies", cid, "purchaseOrders"));
+
+    // Header document — includes items array for quick display + warehouseID for iOS receive flow
+    const headerData: Record<string, unknown> = {
       vendorName: vendorName.trim(),
       status: "Pending",
-      items,
+      warehouseID,
+      items: validItems.map((i) => ({
+        productID: i.productID,
+        productName: i.productName.trim(),
+        quantity: i.quantity,
+        unit: i.unit.trim() || undefined,
+        ...(i.unitCost ? { unitCost: parseFloat(i.unitCost) } : {}),
+      })),
       createdAt: serverTimestamp(),
       createdByUID: user.uid,
       createdByName: user.displayName ?? user.email ?? "",
@@ -102,19 +158,78 @@ export default function OrdersPage() {
       ...(notes.trim() ? { notes: notes.trim() } : {}),
       ...(expectedDate ? { expectedDate: new Date(expectedDate) } : {}),
     };
-    const docRef = await addDoc(collection(db, "companies", cid, "purchaseOrders"), data);
-    const newOrder: PurchaseOrder = { id: docRef.id, vendorName: vendorName.trim(), status: "Pending", vendorRef: vendorRef.trim() || undefined, notes: notes.trim() || undefined, items, expectedDate: expectedDate ? new Date(expectedDate) : undefined, totalCost: total > 0 ? total : undefined };
+    batch.set(poRef, headerData);
+
+    // Lines subcollection — matches iOS format so iOS can read and receive these orders
+    for (const item of validItems) {
+      const lineRef = doc(collection(db, "companies", cid, "purchaseOrders", poRef.id, "lines"));
+      batch.set(lineRef, {
+        productID: item.productID,
+        productName: item.productName.trim(),
+        unit: item.unit.trim() ?? "",
+        warehouseID,
+        qtyOrdered: item.quantity,
+        qtyReceived: 0,
+      });
+    }
+
+    await batch.commit();
+
+    const newOrder: PurchaseOrder = {
+      id: poRef.id,
+      vendorName: vendorName.trim(),
+      status: "Pending",
+      vendorRef: vendorRef.trim() || undefined,
+      notes: notes.trim() || undefined,
+      warehouseID,
+      items: validItems.map((i) => ({
+        productID: i.productID,
+        productName: i.productName.trim(),
+        quantity: i.quantity,
+        unit: i.unit.trim() || undefined,
+        unitCost: parseFloat(i.unitCost) || undefined,
+      })),
+      expectedDate: expectedDate ? new Date(expectedDate) : undefined,
+      totalCost: total > 0 ? total : undefined,
+    };
     setOrders((prev) => [newOrder, ...prev]);
     setShowCreate(false);
   }
 
-  async function markReceived(id: string) {
+  async function markReceived(order: PurchaseOrder) {
     if (!user?.companyID) return;
-    setUpdating(id);
+    const cid = user.companyID;
+    setUpdating(order.id);
     try {
-      await updateDoc(doc(db, "companies", user.companyID, "purchaseOrders", id), { status: "received", receivedAt: serverTimestamp(), receivedBy: user.uid, receivedByName: user.displayName ?? user.email ?? "" });
-      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "received" } : o));
-    } finally { setUpdating(null); }
+      const batch = writeBatch(db);
+      const poRef = doc(db, "companies", cid, "purchaseOrders", order.id);
+
+      // If order has a warehouseID, update individual line items and increment inventory
+      if (order.warehouseID) {
+        const linesSnap = await getDocs(collection(db, "companies", cid, "purchaseOrders", order.id, "lines"));
+        for (const lineDoc of linesSnap.docs) {
+          const lineData = lineDoc.data();
+          const remaining = (lineData.qtyOrdered as number ?? 0) - (lineData.qtyReceived as number ?? 0);
+          if (remaining > 0 && lineData.productID) {
+            batch.update(lineDoc.ref, { qtyReceived: lineData.qtyOrdered });
+            const invRef = doc(db, "companies", cid, "warehouses", order.warehouseID, "inventory", lineData.productID as string);
+            batch.update(invRef, { quantity: increment(remaining) });
+          }
+        }
+      }
+
+      batch.update(poRef, {
+        status: "received",
+        receivedAt: serverTimestamp(),
+        receivedBy: user.uid,
+        receivedByName: user.displayName ?? user.email ?? "",
+      });
+
+      await batch.commit();
+      setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: "received" } : o));
+    } finally {
+      setUpdating(null);
+    }
   }
 
   const filtered = useMemo(() => {
@@ -171,9 +286,11 @@ export default function OrdersPage() {
             const isExpanded = expanded === order.id;
             const isPending = !["completed", "received", "complete", "cancelled"].includes(order.status.toLowerCase());
             const isOverdue = order.expectedDate && order.expectedDate < new Date() && isPending;
+            const displayItems = subcollectionLines[order.id] ?? order.items;
+            const wh = warehouses.find((w) => w.id === order.warehouseID);
             return (
               <div key={order.id} className="bg-[#1a1f2e] border border-[#2a2f3e] rounded-xl overflow-hidden">
-                <button className="w-full px-6 py-4 text-left hover:bg-white/[0.02] transition-colors" onClick={() => setExpanded(isExpanded ? null : order.id)}>
+                <button className="w-full px-6 py-4 text-left hover:bg-white/[0.02] transition-colors" onClick={() => handleExpand(order.id)}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -185,6 +302,7 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         {order.createdAt && <span>{order.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
                         {order.expectedDate && <span>Expected: {order.expectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                        {wh && <span>{wh.name}</span>}
                         <span>{order.items.length} item{order.items.length !== 1 ? "s" : ""}</span>
                         {order.totalCost !== undefined && <span>{order.totalCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>}
                       </div>
@@ -195,13 +313,16 @@ export default function OrdersPage() {
 
                 {isExpanded && (
                   <div className="border-t border-[#2a2f3e] px-6 py-4">
-                    {order.items.length > 0 ? (
+                    {displayItems.length > 0 ? (
                       <div className="space-y-2 mb-3">
-                        {order.items.map((item, i) => (
+                        {displayItems.map((item, i) => (
                           <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-[#2a2f3e] last:border-0">
                             <span className="text-white">{item.productName}</span>
                             <div className="text-right">
                               <span className="text-gray-400">{item.quantity} {item.unit ?? ""}</span>
+                              {item.qtyReceived !== undefined && item.qtyReceived > 0 && (
+                                <span className="text-green-400/70 text-xs ml-2">({item.qtyReceived} received)</span>
+                              )}
                               {item.unitCost !== undefined && <span className="text-gray-600 text-xs ml-2">@ {item.unitCost.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>}
                             </div>
                           </div>
@@ -210,7 +331,7 @@ export default function OrdersPage() {
                     ) : <p className="text-xs text-gray-500 mb-3">No line items</p>}
                     {order.notes && <p className="text-xs text-gray-500 mb-3">Note: {order.notes}</p>}
                     {user?.isAdmin && isPending && (
-                      <button onClick={() => markReceived(order.id)} disabled={updating === order.id} className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors disabled:opacity-50">
+                      <button onClick={() => markReceived(order)} disabled={updating === order.id} className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors disabled:opacity-50">
                         {updating === order.id ? "Updating…" : "Mark as Received"}
                       </button>
                     )}
@@ -223,7 +344,12 @@ export default function OrdersPage() {
       </div>
 
       {showCreate && (
-        <CreateOrderModal companyID={user?.companyID ?? ""} onSave={createOrder} onClose={() => setShowCreate(false)} />
+        <CreateOrderModal
+          companyID={user?.companyID ?? ""}
+          warehouses={warehouses}
+          onSave={createOrder}
+          onClose={() => setShowCreate(false)}
+        />
       )}
     </div>
   );
@@ -231,18 +357,20 @@ export default function OrdersPage() {
 
 // ─── Create Order Modal ──────────────────────────────────────────────────────
 
-interface OrderLineItem { productName: string; quantity: number; unit: string; unitCost: string; }
+interface OrderLineItem { productID: string; productName: string; quantity: number; unit: string; unitCost: string; }
 
-function CreateOrderModal({ companyID, onSave, onClose }: {
+function CreateOrderModal({ companyID, warehouses, onSave, onClose }: {
   companyID: string;
-  onSave: (vendor: string, ref: string, items: PurchaseOrderItem[], expectedDate: string, notes: string) => Promise<void>;
+  warehouses: Warehouse[];
+  onSave: (vendor: string, ref: string, warehouseID: string, items: OrderLineItem[], expectedDate: string, notes: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [vendorName, setVendorName] = useState("");
   const [vendorRef, setVendorRef] = useState("");
+  const [warehouseID, setWarehouseID] = useState(warehouses[0]?.id ?? "");
   const [expectedDate, setExpectedDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<OrderLineItem[]>([{ productName: "", quantity: 1, unit: "", unitCost: "" }]);
+  const [items, setItems] = useState<OrderLineItem[]>([{ productID: "", productName: "", quantity: 1, unit: "", unitCost: "" }]);
   const [products, setProducts] = useState<Product[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -253,30 +381,23 @@ function CreateOrderModal({ companyID, onSave, onClose }: {
     });
   }, [companyID]);
 
-  function addItem() { setItems((prev) => [...prev, { productName: "", quantity: 1, unit: "", unitCost: "" }]); }
+  function addItem() { setItems((prev) => [...prev, { productID: "", productName: "", quantity: 1, unit: "", unitCost: "" }]); }
   function removeItem(i: number) { setItems((prev) => prev.filter((_, idx) => idx !== i)); }
   function updateItem(i: number, field: keyof OrderLineItem, value: string | number) {
     setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   }
-  function selectProduct(i: number, productName: string) {
-    const p = products.find((p) => p.name === productName);
-    setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, productName, unit: p?.unit ?? item.unit } : item));
+  function selectProduct(i: number, productID: string) {
+    const p = products.find((p) => p.id === productID);
+    setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, productID, productName: p?.name ?? "", unit: p?.unit ?? item.unit } : item));
   }
 
-  const validItems = items.filter((i) => i.productName.trim() && i.quantity > 0);
-  const canSave = vendorName.trim() && validItems.length > 0 && !saving;
+  const validItems = items.filter((i) => i.productID && i.productName.trim() && i.quantity > 0);
+  const canSave = vendorName.trim() && warehouseID && validItems.length > 0 && !saving;
 
   async function handleSave() {
     setSaving(true);
-    try {
-      const mapped: PurchaseOrderItem[] = validItems.map((i) => ({
-        productName: i.productName.trim(),
-        quantity: i.quantity,
-        unit: i.unit.trim() || undefined,
-        unitCost: i.unitCost ? parseFloat(i.unitCost) : undefined,
-      }));
-      await onSave(vendorName, vendorRef, mapped, expectedDate, notes);
-    } finally { setSaving(false); }
+    try { await onSave(vendorName, vendorRef, warehouseID, validItems, expectedDate, notes); }
+    finally { setSaving(false); }
   }
 
   const inputCls = "w-full bg-[#0d1117] border border-[#2a2f3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#35B2FF]";
@@ -302,6 +423,15 @@ function CreateOrderModal({ companyID, onSave, onClose }: {
               <input value={vendorRef} onChange={(e) => setVendorRef(e.target.value)} className={inputCls} placeholder="Optional" />
             </div>
           </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Warehouse *</label>
+            <select value={warehouseID} onChange={(e) => setWarehouseID(e.target.value)} className={`${inputCls} appearance-none`}>
+              {warehouses.length === 0 && <option value="">No warehouses</option>}
+              {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs text-gray-500 mb-1">Expected Delivery Date</label>
             <input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} className={inputCls} />
@@ -319,9 +449,9 @@ function CreateOrderModal({ companyID, onSave, onClose }: {
               {items.map((item, index) => (
                 <div key={index} className="flex gap-2 items-start">
                   <div className="flex-1">
-                    <select value={item.productName} onChange={(e) => selectProduct(index, e.target.value)} className={`${inputCls} appearance-none mb-1`}>
+                    <select value={item.productID} onChange={(e) => selectProduct(index, e.target.value)} className={`${inputCls} appearance-none mb-1`}>
                       <option value="">Select product…</option>
-                      {products.map((p) => <option key={p.id} value={p.name}>{p.name}{p.unit ? ` (${p.unit})` : ""}</option>)}
+                      {products.map((p) => <option key={p.id} value={p.id}>{p.name}{p.unit ? ` (${p.unit})` : ""}</option>)}
                     </select>
                     <div className="flex gap-1">
                       <input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, "quantity", Math.max(1, parseInt(e.target.value) || 1))} className={inputCls} placeholder="Qty" />
