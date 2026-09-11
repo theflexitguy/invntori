@@ -5,6 +5,7 @@ import {
   collection, getDocs, query, orderBy, doc, serverTimestamp,
   updateDoc, writeBatch, increment,
 } from "firebase/firestore";
+import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
@@ -201,6 +202,7 @@ export default function OrdersPage() {
 
   return (
     <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-3xl">
+      {/* Mobile: + button in the top nav bar */}
       {user?.isAdmin && (
         <NavBarRight>
           <NavCircleButton href="/orders/new" label="Log purchase order">
@@ -209,7 +211,20 @@ export default function OrdersPage() {
         </NavBarRight>
       )}
 
-      <LargeTitle title="Purchase Orders" />
+      <LargeTitle
+        title="Purchase Orders"
+        action={
+          user?.isAdmin ? (
+            <Link
+              href="/orders/new"
+              className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors shrink-0"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Log Order
+            </Link>
+          ) : undefined
+        }
+      />
 
       <div className="mb-3">
         <SearchField
@@ -249,6 +264,9 @@ export default function OrdersPage() {
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <Pill tint={statusTint(order.status)}>{displayStatus(order.status)}</Pill>
                       {isOverdue && <Pill tint="red">Overdue</Pill>}
+                      {user?.isAdmin && isPending && (
+                        <span className="text-[12px] text-[#30D158] font-medium">Tap to receive</span>
+                      )}
                     </div>
                   </div>
 
