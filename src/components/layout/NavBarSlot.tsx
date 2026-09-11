@@ -31,6 +31,17 @@ export function NavBarRight({ children }: { children: ReactNode }) {
  * An always-visible inline title, for pushed screens that don't carry a large
  * title of their own. Without it the nav bar keeps its fade-in-on-scroll title.
  */
-export function NavBarTitle({ children }: { children: ReactNode }) {
-  return <Slot id="navbar-slot-title">{children}</Slot>;
+export function NavBarTitle({
+  children,
+  fade,
+}: {
+  children: ReactNode;
+  /** Behave like the system title: hidden until the large title scrolls away. */
+  fade?: boolean;
+}) {
+  return (
+    <Slot id="navbar-slot-title">
+      <span className={fade ? "navbar-title-fade" : undefined}>{children}</span>
+    </Slot>
+  );
 }

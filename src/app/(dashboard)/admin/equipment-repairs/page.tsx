@@ -1,24 +1,23 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { collection, getDocs, updateDoc, doc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, updateDoc, doc, writeBatch, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import { NavBarRight } from "@/components/layout/NavBarSlot";
-import { Sheet } from "@/components/ui/Sheet";
 import {
   LargeTitle,
   Group,
   Pill,
   SegmentedControl,
   NavCircleButton,
-  fieldCls,
-  FieldLabel,
+  ActionRow,
   type Tint,
 } from "@/components/ui/ios";
-import { FilterCircleIcon, PersonIcon, ClockIcon } from "@/components/layout/nav";
+import { RepairRequestSheet, type RepairDecision } from "./RepairRequestSheet";
+import { FilterCircleIcon, PersonIcon, ClockIcon, DocIcon } from "@/components/layout/nav";
 import type { Equipment, EquipmentRepair } from "@/lib/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -63,7 +62,7 @@ const STATUS_LABEL: Record<string, string> = {
   approved: "Approved",
   inProgress: "In Progress",
   completed: "Completed",
-  rejected: "Rejected",
+  rejected: "Denied",
 };
 
 const STATUS_TINT: Record<string, Tint> = {
@@ -80,91 +79,36 @@ const FILTER_TABS: { value: FilterTab; label: string }[] = [
   { value: "resolved", label: "Resolved" },
 ];
 
-// ── Rejection sheet ─────────────────────────────────────────────────────────
-
-function RejectSheet({
-  repair,
-  onConfirm,
-  onClose,
-}: {
-  repair: EquipmentRepair;
-  onConfirm: (note: string) => Promise<void>;
-  onClose: () => void;
-}) {
-  const [note, setNote] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleConfirm() {
-    if (!note.trim()) {
-      setError("A response note is required when rejecting.");
-      return;
-    }
-    setSaving(true);
-    setError("");
-    try {
-      await onConfirm(note.trim());
-    } catch {
-      setError("Failed to reject. Please try again.");
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Sheet title="Reject Repair Request" onClose={onClose} size="sm">
-      <p className="text-[15px] text-[rgba(235,235,245,0.6)] mb-4">{repair.equipmentName}</p>
-      <FieldLabel>Response Note</FieldLabel>
-      <textarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Why is this request being rejected?"
-        rows={4}
-        className={`${fieldCls} resize-none`}
-        autoFocus
-      />
-      {error && <p className="text-[15px] text-[#FF453A] mt-2">{error}</p>}
-      <button
-        onClick={handleConfirm}
-        disabled={!note.trim() || saving}
-        className="mt-4 w-full py-3 rounded-[14px] text-[17px] font-semibold bg-[#FF453A]/15 text-[#FF453A] active:bg-[#FF453A]/25 transition-colors disabled:opacity-40"
-      >
-        {saving ? "Rejecting…" : "Reject Request"}
-      </button>
-    </Sheet>
-  );
-}
-
 // ── Repair card ─────────────────────────────────────────────────────────────
 
 function RepairCard({
   repair,
   equipment,
-  onApprove,
-  onReject,
+  onReview,
   onComplete,
 }: {
   repair: EquipmentRepair;
   equipment: Equipment | undefined;
-  onApprove: () => Promise<void>;
-  onReject: () => void;
+  onReview: () => void;
   onComplete: () => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [actioning, setActioning] = useState<"approve" | "complete" | null>(null);
+  const [actioning, setActioning] = useState(false);
+  const needsReview = repair.status === "reported";
 
-  async function run(kind: "approve" | "complete", fn: () => Promise<void>) {
-    setActioning(kind);
+  async function complete() {
+    setActioning(true);
     try {
-      await fn();
+      await onComplete();
     } finally {
-      setActioning(null);
+      setActioning(false);
     }
   }
 
   return (
     <Group className={`p-4 ${RESOLVED_STATUSES.has(repair.status) ? "opacity-70" : ""}`}>
       <button
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => (needsReview ? onReview() : setExpanded((v) => !v))}
         className="w-full text-left active:opacity-70 transition-opacity"
       >
         <div className="flex items-start gap-3">
@@ -190,6 +134,12 @@ function RepairCard({
           </span>
         </div>
       </button>
+
+      {needsReview && (
+        <div className="-mx-4 mt-3 border-t border-[#38383A]/70">
+          <ActionRow Icon={DocIcon} label="Review Request" onClick={onReview} last />
+        </div>
+      )}
 
       {expanded && (
         <div className="mt-4 pt-4 border-t border-[#38383A]/70 space-y-3">
@@ -217,6 +167,11 @@ function RepairCard({
               Resolved {formatDateTime(repair.resolvedAt)}
             </p>
           )}
+          {repair.replacementEquipmentName && (
+            <p className="text-[15px] text-[rgba(235,235,245,0.6)]">
+              Replacement issued · {repair.replacementEquipmentName}
+            </p>
+          )}
           {repair.responseNote && (
             <div className="bg-[#2C2C2E] rounded-[10px] px-4 py-3">
               <p className="text-[13px] text-[rgba(235,235,245,0.6)] mb-1">Admin response</p>
@@ -224,32 +179,13 @@ function RepairCard({
             </div>
           )}
 
-          {repair.status === "reported" && (
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={() => run("approve", onApprove)}
-                disabled={actioning !== null}
-                className="flex-1 py-3 rounded-[14px] text-[17px] font-semibold bg-[#0A84FF]/15 text-[#0A84FF] active:bg-[#0A84FF]/25 transition-colors disabled:opacity-40"
-              >
-                {actioning === "approve" ? "Approving…" : "Approve"}
-              </button>
-              <button
-                onClick={onReject}
-                disabled={actioning !== null}
-                className="flex-1 py-3 rounded-[14px] text-[17px] font-semibold bg-[#FF453A]/15 text-[#FF453A] active:bg-[#FF453A]/25 transition-colors disabled:opacity-40"
-              >
-                Reject
-              </button>
-            </div>
-          )}
-
           {(repair.status === "approved" || repair.status === "inProgress") && (
             <button
-              onClick={() => run("complete", onComplete)}
-              disabled={actioning !== null}
+              onClick={complete}
+              disabled={actioning}
               className="w-full py-3 rounded-[14px] text-[17px] font-semibold bg-[#30D158]/15 text-[#30D158] active:bg-[#30D158]/25 transition-colors disabled:opacity-40"
             >
-              {actioning === "complete" ? "Marking Complete…" : "Mark as Completed"}
+              {actioning ? "Marking Complete…" : "Mark as Completed"}
             </button>
           )}
         </div>
@@ -269,7 +205,7 @@ export default function EquipmentRepairsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("open");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<EquipmentRepair | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<EquipmentRepair | null>(null);
 
   useEffect(() => {
     if (user && !user.isAdmin) router.replace("/dashboard");
@@ -313,6 +249,11 @@ export default function EquipmentRepairsPage() {
     load();
   }, [load]);
 
+  const availableEquipment = useMemo(
+    () => [...equipmentMap.values()].filter((e) => e.status === "available"),
+    [equipmentMap]
+  );
+
   const filtered = useMemo(
     () =>
       repairs.filter((r) => {
@@ -325,54 +266,66 @@ export default function EquipmentRepairsPage() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  async function handleApprove(repair: EquipmentRepair) {
+  /**
+   * One write for the whole review: the repair's outcome, the equipment's new
+   * state and — when a substitute is handed over — its checkout to the person
+   * who reported the fault.
+   */
+  async function handleDecision(repair: EquipmentRepair, decision: RepairDecision) {
     if (!user?.companyID || !repair.id) return;
     const cid = user.companyID;
     const now = Timestamp.now();
     const reviewedByName = user.displayName ?? user.email ?? "Admin";
+    const { approve, note, replacement } = decision;
+    const status = approve ? "approved" : "rejected";
 
-    await updateDoc(doc(db, "companies", cid, "equipmentRepairs", repair.id), {
-      status: "approved",
+    const batch = writeBatch(db);
+
+    batch.update(doc(db, "companies", cid, "equipmentRepairs", repair.id), {
+      status,
       reviewedAt: now,
       reviewedByName,
+      ...(note ? { responseNote: note } : {}),
+      ...(replacement
+        ? { replacementEquipmentID: replacement.id, replacementEquipmentName: replacement.name }
+        : {}),
     });
 
     const equip = equipmentMap.get(repair.equipmentID);
-    if (equip && equip.status !== "inRepair" && repair.equipmentID) {
-      await updateDoc(doc(db, "companies", cid, "equipment", repair.equipmentID), {
-        status: "inRepair",
-      });
-      setEquipmentMap((prev) => {
-        const next = new Map(prev);
-        const e = next.get(repair.equipmentID);
-        if (e) next.set(repair.equipmentID, { ...e, status: "inRepair" });
-        return next;
-      });
-    }
+    const equipmentPatch = new Map<string, Partial<Equipment>>();
 
-    setRepairs((prev) =>
-      prev.map((r) =>
-        r.id === repair.id ? { ...r, status: "approved", reviewedAt: now, reviewedByName } : r
-      )
-    );
-  }
+    if (approve) {
+      if (repair.equipmentID && equip && equip.status !== "inRepair") {
+        batch.update(doc(db, "companies", cid, "equipment", repair.equipmentID), {
+          status: "inRepair",
+        });
+        equipmentPatch.set(repair.equipmentID, { status: "inRepair" });
+      }
 
-  async function handleReject(repair: EquipmentRepair, responseNote: string) {
-    if (!user?.companyID || !repair.id) return;
-    const cid = user.companyID;
-    const now = Timestamp.now();
-    const reviewedByName = user.displayName ?? user.email ?? "Admin";
-
-    await updateDoc(doc(db, "companies", cid, "equipmentRepairs", repair.id), {
-      status: "rejected",
-      reviewedAt: now,
-      reviewedByName,
-      responseNote,
-    });
-
-    // Free the equipment again once nothing else is outstanding against it
-    const equip = equipmentMap.get(repair.equipmentID);
-    if (equip?.status === "inRepair" && repair.equipmentID) {
+      if (replacement?.id) {
+        batch.update(doc(db, "companies", cid, "equipment", replacement.id), {
+          status: "checkedOut",
+          currentHolderUID: repair.reportedByUID,
+          currentHolderName: repair.reportedByName,
+          currentCheckedOutAt: now,
+        });
+        equipmentPatch.set(replacement.id, {
+          status: "checkedOut",
+          currentHolderUID: repair.reportedByUID,
+          currentHolderName: repair.reportedByName,
+          currentCheckedOutAt: now,
+        });
+        batch.set(doc(collection(db, "companies", cid, "equipmentCheckouts")), {
+          equipmentID: replacement.id,
+          equipmentName: replacement.name,
+          employeeUID: repair.reportedByUID,
+          employeeName: repair.reportedByName,
+          checkedOutAt: now,
+          notes: `Replacement for ${repair.equipmentName}`,
+        });
+      }
+    } else if (equip?.status === "inRepair" && repair.equipmentID) {
+      // Nothing else outstanding against it, so put it back in service
       const otherOpen = repairs.filter(
         (r) =>
           r.id !== repair.id &&
@@ -380,26 +333,40 @@ export default function EquipmentRepairsPage() {
           OPEN_STATUSES.has(r.status)
       );
       if (otherOpen.length === 0) {
-        await updateDoc(doc(db, "companies", cid, "equipment", repair.equipmentID), {
+        batch.update(doc(db, "companies", cid, "equipment", repair.equipmentID), {
           status: "available",
         });
-        setEquipmentMap((prev) => {
-          const next = new Map(prev);
-          const e = next.get(repair.equipmentID);
-          if (e) next.set(repair.equipmentID, { ...e, status: "available" });
-          return next;
-        });
+        equipmentPatch.set(repair.equipmentID, { status: "available" });
       }
+    }
+
+    await batch.commit();
+
+    if (equipmentPatch.size > 0) {
+      setEquipmentMap((prev) => {
+        const next = new Map(prev);
+        equipmentPatch.forEach((patch, id) => {
+          const e = next.get(id);
+          if (e) next.set(id, { ...e, ...patch });
+        });
+        return next;
+      });
     }
 
     setRepairs((prev) =>
       prev.map((r) =>
         r.id === repair.id
-          ? { ...r, status: "rejected", reviewedAt: now, reviewedByName, responseNote }
+          ? {
+              ...r,
+              status,
+              reviewedAt: now,
+              reviewedByName,
+              ...(note ? { responseNote: note } : {}),
+            }
           : r
       )
     );
-    setRejectTarget(null);
+    setReviewTarget(null);
   }
 
   async function handleComplete(repair: EquipmentRepair) {
@@ -470,19 +437,21 @@ export default function EquipmentRepairsPage() {
               key={repair.id}
               repair={repair}
               equipment={equipmentMap.get(repair.equipmentID)}
-              onApprove={() => handleApprove(repair)}
-              onReject={() => setRejectTarget(repair)}
+              onReview={() => setReviewTarget(repair)}
               onComplete={() => handleComplete(repair)}
             />
           ))}
         </div>
       )}
 
-      {rejectTarget && (
-        <RejectSheet
-          repair={rejectTarget}
-          onConfirm={(note) => handleReject(rejectTarget, note)}
-          onClose={() => setRejectTarget(null)}
+      {reviewTarget && (
+        <RepairRequestSheet
+          repair={reviewTarget}
+          equipment={equipmentMap.get(reviewTarget.equipmentID)}
+          availableEquipment={availableEquipment}
+          formatDateTime={formatDateTime}
+          onDecide={(d) => handleDecision(reviewTarget, d)}
+          onClose={() => setReviewTarget(null)}
         />
       )}
     </div>

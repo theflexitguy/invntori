@@ -120,7 +120,7 @@ export function EditEmployeeSheet({
       <h2 className="ios-large-title text-white mb-4">Edit Employee</h2>
 
       <div className="space-y-4">
-        <CardSection Icon={PersonIcon} title="Employee Info">
+        <CardSection tone="elevated" Icon={PersonIcon} title="Employee Info">
           <div className="space-y-2.5">
             <div className="flex items-center gap-3">
               <PersonIcon className="w-[19px] h-[19px] text-white shrink-0" />
@@ -156,7 +156,7 @@ export function EditEmployeeSheet({
           </div>
         </CardSection>
 
-        <CardSection Icon={BuildingIcon} title="Office Assignment">
+        <CardSection tone="elevated" Icon={BuildingIcon} title="Office Assignment">
           {offices.length === 0 ? (
             <p className="text-[15px] text-[rgba(235,235,245,0.3)] py-1">No offices configured.</p>
           ) : (
@@ -186,7 +186,7 @@ export function EditEmployeeSheet({
           )}
         </CardSection>
 
-        <CardSection Icon={LinkIcon} title="FieldRoutes Integration">
+        <CardSection tone="elevated" Icon={LinkIcon} title="FieldRoutes Integration">
           <div className="flex items-center gap-3">
             <span className="text-[17px] text-[rgba(235,235,245,0.6)] shrink-0">#</span>
             <label className="text-[17px] text-[rgba(235,235,245,0.6)] shrink-0">Employee ID:</label>
@@ -204,7 +204,7 @@ export function EditEmployeeSheet({
         </CardSection>
 
         {!isAdmin && isManager && (
-          <CardSection Icon={SlidersIcon} title="Manager Permissions">
+          <CardSection tone="elevated" Icon={SlidersIcon} title="Manager Permissions">
             <div className="space-y-1">
               {PERMISSION_KEYS.map((p) => (
                 <button
@@ -224,7 +224,7 @@ export function EditEmployeeSheet({
           </CardSection>
         )}
 
-        <CardSection
+        <CardSection tone="elevated"
           Icon={FieldsIcon}
           title="Custom Fields"
           action={

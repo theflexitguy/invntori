@@ -380,6 +380,57 @@ export function UpDownChevronIcon({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
+/** person.crop.circle.badge.plus */
+export function PersonBadgePlusIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M10.4 2.4a8.6 8.6 0 0 0-6.2 14.55c.9-2.3 3.3-3.6 6.2-3.6.62 0 1.22.06 1.78.18a5.6 5.6 0 0 1 6.6-4.3A8.6 8.6 0 0 0 10.4 2.4Zm0 2.6a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm.6 10.15c-2.6 0-4.7 1.2-5.45 3.2a8.57 8.57 0 0 0 7.03 2.5 5.6 5.6 0 0 1-1.6-5.62 8.4 8.4 0 0 0 .02-.08Z" />
+      <path d="M17.9 11.3a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Zm.8 3.3h1.35a.8.8 0 0 1 0 1.6H18.7v1.35a.8.8 0 0 1-1.6 0V16.2h-1.35a.8.8 0 0 1 0-1.6h1.35v-1.35a.8.8 0 0 1 1.6 0v1.35Z" />
+    </svg>
+  );
+}
+
+/** person.crop.circle.badge.minus */
+export function PersonBadgeMinusIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M10.4 2.4a8.6 8.6 0 0 0-6.2 14.55c.9-2.3 3.3-3.6 6.2-3.6.62 0 1.22.06 1.78.18a5.6 5.6 0 0 1 6.6-4.3A8.6 8.6 0 0 0 10.4 2.4Zm0 2.6a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm.6 10.15c-2.6 0-4.7 1.2-5.45 3.2a8.57 8.57 0 0 0 7.03 2.5 5.6 5.6 0 0 1-1.6-5.62 8.4 8.4 0 0 0 .02-.08Z" />
+      <path d="M17.9 11.3a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Zm2.15 4.9h-4.3a.8.8 0 0 1 0-1.6h4.3a.8.8 0 0 1 0 1.6Z" />
+    </svg>
+  );
+}
+
+/** archivebox */
+export function ArchiveBoxIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <rect x="3.4" y="3.6" width="17.2" height="4.2" rx="1.4" strokeWidth={1.7} />
+      <path strokeWidth={1.7} d="M5 8.2v10.2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.2" />
+      <path strokeWidth={1.7} strokeLinecap="round" d="M9.6 12.2h4.8" />
+    </svg>
+  );
+}
+
+/** checkmark.circle */
+export function CheckCircleOutlineIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9.2" strokeWidth={1.7} />
+      <path strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" d="m7.8 12.3 2.85 2.85L16.4 9.4" />
+    </svg>
+  );
+}
+
+/** xmark.circle */
+export function XCircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9.2" strokeWidth={1.7} />
+      <path strokeWidth={1.9} strokeLinecap="round" d="m9 9 6 6M15 9l-6 6" />
+    </svg>
+  );
+}
+
 /* Outline utility glyphs */
 
 export function ChevronRightIcon({ className = "w-4 h-4" }: IconProps) {

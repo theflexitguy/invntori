@@ -22,7 +22,10 @@ export function MobileTopBar({ scrolled }: { scrolled: boolean }) {
       }`}
     >
       <div className="pt-safe">
-        <div className="h-11 flex items-center gap-2 px-2 relative">
+        <div
+          className="h-11 flex items-center gap-2 px-2 relative"
+          data-navbar-scrolled={scrolled ? "true" : "false"}
+        >
           {/* Leading: back button on pushed screens, else the page's own slot */}
           <div className="flex items-center gap-2 shrink-0 z-10">
             {showBack && (

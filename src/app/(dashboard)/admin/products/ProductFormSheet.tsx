@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FormSheet } from "@/components/ui/FormSheet";
 import {
-  CardSection, Field, fieldCls, Switch, ToggleListGroup, CaptionHeader,
+  CardSection, Field, fieldElevatedCls, Switch, ToggleListGroup, CaptionHeader,
 } from "@/components/ui/ios";
 import { InfoCircleIcon, DocIcon, ChevronDownIcon } from "@/components/layout/nav";
 import type { Product } from "@/lib/types";
@@ -125,7 +125,7 @@ export function ProductFormSheet({
   }
 
   /** Datalist-backed text input, so a value the company hasn't catalogued still works. */
-  const selectCls = `${fieldCls} appearance-none pr-10`;
+  const selectCls = `${fieldElevatedCls} appearance-none pr-10`;
 
   return (
     <FormSheet
@@ -136,13 +136,13 @@ export function ProductFormSheet({
       saving={saving}
     >
       <div className="space-y-4">
-        <CardSection Icon={InfoCircleIcon} title="Product Info">
+        <CardSection tone="elevated" Icon={InfoCircleIcon} title="Product Info">
           <div className="space-y-3">
             <Field label="Name">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className={fieldCls}
+                className={fieldElevatedCls}
                 placeholder="e.g. 90/10 NIS"
                 autoFocus
               />
@@ -193,7 +193,7 @@ export function ProductFormSheet({
                 value={threshold}
                 onChange={(e) => setThreshold(e.target.value)}
                 inputMode="numeric"
-                className={fieldCls}
+                className={fieldElevatedCls}
                 placeholder="0"
               />
             </Field>
@@ -203,7 +203,7 @@ export function ProductFormSheet({
                 value={unitCost}
                 onChange={(e) => setUnitCost(e.target.value)}
                 inputMode="decimal"
-                className={fieldCls}
+                className={fieldElevatedCls}
                 placeholder="0.00"
               />
             </Field>
@@ -216,7 +216,7 @@ export function ProductFormSheet({
                 value={chemID}
                 onChange={(e) => setChemID(e.target.value)}
                 inputMode="numeric"
-                className={fieldCls}
+                className={fieldElevatedCls}
                 placeholder="Enter FieldRoutes ID"
               />
             </Field>
@@ -233,20 +233,20 @@ export function ProductFormSheet({
           </div>
         </CardSection>
 
-        <CardSection Icon={DocIcon} title="Product Details">
+        <CardSection tone="elevated" Icon={DocIcon} title="Product Details">
           <div className="space-y-4">
             <Field label="Mix Rate">
               <input
                 value={mixRate}
                 onChange={(e) => setMixRate(e.target.value)}
-                className={fieldCls}
+                className={fieldElevatedCls}
                 placeholder="Enter Mix Rate"
               />
             </Field>
 
             <div>
               <CaptionHeader uppercase={false}>Application Areas</CaptionHeader>
-              <ToggleListGroup
+              <ToggleListGroup tone="elevated"
                 items={areaOptions}
                 selected={areas}
                 onToggle={(item) => toggle(areas, setAreas, item)}
@@ -255,7 +255,7 @@ export function ProductFormSheet({
 
             <div>
               <CaptionHeader uppercase={false}>Target Pests</CaptionHeader>
-              <ToggleListGroup
+              <ToggleListGroup tone="elevated"
                 items={pestOptions}
                 selected={pests}
                 onToggle={(item) => toggle(pests, setPests, item)}

@@ -137,6 +137,9 @@ export interface EquipmentRepair {
   reviewedAt?: Timestamp;
   reviewedByName?: string;
   responseNote?: string;
+  /** Substitute handed to the reporter when the request was approved. */
+  replacementEquipmentID?: string;
+  replacementEquipmentName?: string;
 }
 
 // ── Fleet ──────────────────────────────────────────────────────────────────

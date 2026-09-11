@@ -32,9 +32,27 @@ export function LargeTitle({
   );
 }
 
-/** Section header above a grouped list, styled like the native Admin tab. */
-export function SectionHeader({ children }: { children: ReactNode }) {
-  return <h2 className="text-[20px] font-bold text-white mb-2 px-1">{children}</h2>;
+/**
+ * Section header above a grouped list. The Admin tab prints these in white;
+ * the detail screens (Actions, Driver History, …) print them in the
+ * secondary label colour.
+ */
+export function SectionHeader({
+  children,
+  tone = "primary",
+}: {
+  children: ReactNode;
+  tone?: "primary" | "secondary";
+}) {
+  return (
+    <h2
+      className={`text-[20px] font-bold mb-2 px-1 ${
+        tone === "secondary" ? "text-[rgba(235,235,245,0.6)]" : "text-white"
+      }`}
+    >
+      {children}
+    </h2>
+  );
 }
 
 /** Small caption header above a compact group. */
@@ -56,10 +74,27 @@ export function CaptionHeader({
   );
 }
 
-/** Grouped card. Children are separated by inset hairlines, iOS style. */
-export function Group({ children, className = "" }: { children: ReactNode; className?: string }) {
+/**
+ * Grouped card. Children are separated by inset hairlines, iOS style.
+ *
+ * `tone="elevated"` is for cards sitting inside a sheet, whose own background
+ * is already #1C1C1E — without it the card would be invisible.
+ */
+export function Group({
+  children,
+  className = "",
+  tone = "base",
+}: {
+  children: ReactNode;
+  className?: string;
+  tone?: "base" | "elevated";
+}) {
   return (
-    <div className={`bg-[#1C1C1E] rounded-[14px] overflow-hidden ${className}`}>{children}</div>
+    <div
+      className={`${tone === "elevated" ? "bg-[#2C2C2E]" : "bg-[#1C1C1E]"} rounded-[14px] overflow-hidden ${className}`}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -182,11 +217,14 @@ export function SearchField({
   onChange,
   placeholder = "Search",
   shape = "rounded",
+  tone = "base",
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   shape?: "rounded" | "pill";
+  /** Use inside a sheet or an elevated card, where #1C1C1E would disappear. */
+  tone?: "base" | "elevated";
 }) {
   return (
     <div className="relative">
@@ -203,7 +241,9 @@ export function SearchField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full bg-[#1C1C1E] pl-10 pr-3 py-3 text-[17px] text-white placeholder-[rgba(235,235,245,0.4)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF]/60 ${
+        className={`w-full ${
+          tone === "elevated" ? "bg-[#3A3A3C]" : "bg-[#1C1C1E]"
+        } pl-10 pr-3 py-3 text-[17px] text-white placeholder-[rgba(235,235,245,0.4)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF]/60 ${
           shape === "pill" ? "rounded-full" : "rounded-[12px]"
         }`}
       />
@@ -294,14 +334,17 @@ export function CardSection({
   title,
   children,
   action,
+  tone = "base",
 }: {
   Icon?: ComponentType<{ className?: string }>;
   title: ReactNode;
   children?: ReactNode;
   action?: ReactNode;
+  /** Use inside a sheet, whose own background is already #1C1C1E. */
+  tone?: "base" | "elevated";
 }) {
   return (
-    <div className="bg-[#1C1C1E] rounded-[14px] p-4">
+    <div className={`${tone === "elevated" ? "bg-[#2C2C2E]" : "bg-[#1C1C1E]"} rounded-[14px] p-4`}>
       <div className="flex items-center gap-2 mb-3">
         {Icon && <Icon className="w-[19px] h-[19px] text-[#0A84FF] shrink-0" />}
         <h3 className="text-[17px] font-semibold text-[#0A84FF] flex-1 min-w-0">{title}</h3>
@@ -406,9 +449,13 @@ export function FieldLabel({ children }: { children: ReactNode }) {
   return <label className="block text-[17px] font-semibold text-white mb-2">{children}</label>;
 }
 
-/** Inset form field fill. */
+/** Inset form field fill, for a field sitting directly on a sheet. */
 export const fieldCls =
   "w-full bg-[#2C2C2E] rounded-[10px] px-4 py-3 text-[17px] text-white placeholder-[rgba(235,235,245,0.3)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF]";
+
+/** Same fill one step up, for a field inside an elevated (#2C2C2E) card. */
+export const fieldElevatedCls =
+  "w-full bg-[#3A3A3C] rounded-[10px] px-4 py-3 text-[17px] text-white placeholder-[rgba(235,235,245,0.3)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF]";
 
 /** Compact gray label + field, as inside the native Edit Product cards. */
 export function Field({
@@ -471,13 +518,16 @@ export function ToggleListGroup({
   items,
   selected,
   onToggle,
+  tone = "base",
 }: {
   items: string[];
   selected: string[];
   onToggle: (item: string) => void;
+  /** Use inside a sheet or an elevated card. */
+  tone?: "base" | "elevated";
 }) {
   return (
-    <div className="bg-[#1C1C1E] rounded-[14px] px-4 py-1">
+    <div className={`${tone === "elevated" ? "bg-[#3A3A3C]" : "bg-[#1C1C1E]"} rounded-[14px] px-4 py-1`}>
       {items.map((item, i) => (
         <div
           key={item}
@@ -682,4 +732,103 @@ export function PlainRow({
     );
   }
   return <div className={cls}>{children}</div>;
+}
+
+/**
+ * Action row inside a grouped card: tinted glyph, coloured label, no chevron —
+ * the native "Reassign Driver" / "Approve Request" shape. The glyph and the
+ * label are tinted independently because the native app does exactly that
+ * (blue archivebox next to a red "Retire Vehicle").
+ */
+export function ActionRow({
+  Icon,
+  label,
+  onClick,
+  iconTint = "blue",
+  labelTint = "blue",
+  disabled,
+  last,
+}: {
+  Icon?: ComponentType<{ className?: string }>;
+  label: ReactNode;
+  onClick?: () => void;
+  iconTint?: Tint;
+  labelTint?: Tint | "white";
+  disabled?: boolean;
+  last?: boolean;
+}) {
+  const labelCls = labelTint === "white" ? "text-white" : TINTS[labelTint].text;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-stretch pl-4 text-left active:bg-white/[0.06] transition-colors disabled:opacity-40"
+    >
+      {Icon && (
+        <span className="flex items-center pr-3 shrink-0">
+          <Icon className={`w-[22px] h-[22px] ${TINTS[iconTint].text}`} />
+        </span>
+      )}
+      <span
+        className={`flex-1 min-w-0 flex items-center pr-4 py-3.5 ${
+          last ? "" : "border-b border-[#38383A]/70"
+        }`}
+      >
+        <span className={`flex-1 min-w-0 text-[17px] leading-snug ${labelCls}`}>{label}</span>
+      </span>
+    </button>
+  );
+}
+
+/** Static label / value row inside a grouped card. */
+export function DetailRow({
+  label,
+  value,
+  last,
+  nowrap,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  last?: boolean;
+  /** Keep the value on one line — timestamps read badly broken across two. */
+  nowrap?: boolean;
+}) {
+  return (
+    <div className="pl-4">
+      <div
+        className={`flex items-baseline gap-3 pr-4 py-3.5 ${
+          last ? "" : "border-b border-[#38383A]/70"
+        }`}
+      >
+        <span className="text-[17px] text-white shrink-0">{label}</span>
+        <span
+          className={`flex-1 min-w-0 text-[17px] text-[rgba(235,235,245,0.6)] text-right ${
+            nowrap ? "whitespace-nowrap truncate" : "break-words"
+          }`}
+        >
+          {value}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Stacked caption + value block inside a grouped card (the "Problem" row). */
+export function StackedRow({
+  label,
+  value,
+  last,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <div className="pl-4">
+      <div className={`pr-4 py-3 ${last ? "" : "border-b border-[#38383A]/70"}`}>
+        <p className="text-[13px] text-[rgba(235,235,245,0.6)] mb-1">{label}</p>
+        <p className="text-[17px] text-white leading-snug break-words">{value}</p>
+      </div>
+    </div>
+  );
 }

@@ -62,3 +62,45 @@ export function FormSheet({
     </Sheet>
   );
 }
+
+
+/**
+ * Read-and-act modal with the native "Close" header — the shape used by the
+ * Repair Request review sheet. Unlike FormSheet the title never collapses,
+ * because there is no Save button competing with it.
+ */
+export function DetailSheet({
+  title,
+  onClose,
+  closeLabel = "Close",
+  children,
+  size = "lg",
+}: {
+  title: string;
+  onClose: () => void;
+  closeLabel?: string;
+  children: ReactNode;
+  size?: "sm" | "md" | "lg" | "xl";
+}) {
+  return (
+    <Sheet size={size} onClose={onClose}>
+      <div className="sticky top-0 z-10 -mx-5 sm:-mx-6 px-5 sm:px-6 pt-1 pb-3 bg-[#1C1C1E] flex items-center gap-3">
+        <button
+          onClick={onClose}
+          className="bg-[#2C2C2E] rounded-full px-4 py-2 text-[15px] font-medium text-white active:opacity-70 transition-opacity shrink-0"
+        >
+          {closeLabel}
+        </button>
+        <span className="flex-1 min-w-0 text-center text-[17px] font-semibold text-white truncate">
+          {title}
+        </span>
+        {/* Balances the Close pill so the title stays optically centred */}
+        <span aria-hidden className="invisible shrink-0 px-4 py-2 text-[15px] font-medium">
+          {closeLabel}
+        </span>
+      </div>
+
+      {children}
+    </Sheet>
+  );
+}
