@@ -30,6 +30,11 @@ export interface Product {
   reorderThreshold?: number;
   unitCost?: number;
   isRetired?: boolean;
+  /** Links the product to a FieldRoutes chemical for inventory auditing. */
+  fieldroutesChemicalID?: number;
+  mixRate?: string;
+  applicationAreas?: string[];
+  targetPests?: string[];
 }
 
 export interface Category {

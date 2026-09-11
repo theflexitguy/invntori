@@ -37,10 +37,20 @@ export function SectionHeader({ children }: { children: ReactNode }) {
   return <h2 className="text-[20px] font-bold text-white mb-2 px-1">{children}</h2>;
 }
 
-/** Small uppercase caption header (used above compact groups). */
-export function CaptionHeader({ children }: { children: ReactNode }) {
+/** Small caption header above a compact group. */
+export function CaptionHeader({
+  children,
+  uppercase = true,
+}: {
+  children: ReactNode;
+  uppercase?: boolean;
+}) {
   return (
-    <p className="text-[13px] font-semibold text-[rgba(235,235,245,0.6)] uppercase tracking-wide mb-2 px-1">
+    <p
+      className={`text-[15px] text-[rgba(235,235,245,0.6)] mb-2 px-1 ${
+        uppercase ? "text-[13px] font-semibold uppercase tracking-wide" : ""
+      }`}
+    >
       {children}
     </p>
   );
@@ -387,5 +397,131 @@ export function InfoRow({
       {value && <span className="text-[15px] text-[rgba(235,235,245,0.6)] shrink-0">{value}</span>}
       {trailing}
     </div>
+  );
+}
+
+
+/** Bold form label sitting above a field, as on the native Edit Warehouse sheet. */
+export function FieldLabel({ children }: { children: ReactNode }) {
+  return <label className="block text-[17px] font-semibold text-white mb-2">{children}</label>;
+}
+
+/** Inset form field fill. */
+export const fieldCls =
+  "w-full bg-[#2C2C2E] rounded-[10px] px-4 py-3 text-[17px] text-white placeholder-[rgba(235,235,245,0.3)] focus:outline-none focus:ring-1 focus:ring-[#0A84FF]";
+
+/** Compact gray label + field, as inside the native Edit Product cards. */
+export function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: ReactNode;
+  children: ReactNode;
+  hint?: ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-[15px] text-[rgba(235,235,245,0.6)] mb-1.5">{label}</label>
+      {children}
+      {hint && (
+        <p className="text-[13px] text-[rgba(235,235,245,0.6)] mt-1.5 leading-snug">{hint}</p>
+      )}
+    </div>
+  );
+}
+
+/** Single-select chip row — the native office assignment picker. */
+export function ChipSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  options: { value: string | null; label: string; dot?: string }[];
+}) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value ?? "__none"}
+            onClick={() => onChange(o.value)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[17px] transition-colors ${
+              on
+                ? "bg-[#0A84FF]/15 text-[#0A84FF] ring-1 ring-[#0A84FF]"
+                : "text-white active:bg-white/5"
+            }`}
+          >
+            {o.dot && (
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: o.dot }} />
+            )}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Card of label + switch rows, as on the native product areas / pests lists. */
+export function ToggleListGroup({
+  items,
+  selected,
+  onToggle,
+}: {
+  items: string[];
+  selected: string[];
+  onToggle: (item: string) => void;
+}) {
+  return (
+    <div className="bg-[#1C1C1E] rounded-[14px] px-4 py-1">
+      {items.map((item, i) => (
+        <div
+          key={item}
+          className={`flex items-center justify-between gap-3 py-2.5 ${
+            i === items.length - 1 ? "" : "border-b border-[#38383A]/70"
+          }`}
+        >
+          <span className="text-[17px] text-white min-w-0 flex-1 break-words">{item}</span>
+          <Switch
+            checked={selected.includes(item)}
+            onChange={() => onToggle(item)}
+            label={item}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Explanatory card with an info glyph, as at the foot of the native Offices screen. */
+export function InfoCard({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return (
+    <div className="bg-[#1C1C1E] rounded-[14px] p-4 flex gap-3">
+      <InfoGlyph />
+      <div className="min-w-0">
+        <h3 className="text-[17px] font-semibold text-white mb-1">{title}</h3>
+        <p className="text-[15px] text-[rgba(235,235,245,0.6)] leading-snug">{children}</p>
+      </div>
+    </div>
+  );
+}
+
+function InfoGlyph() {
+  return (
+    <svg
+      className="w-[22px] h-[22px] text-[#0A84FF] shrink-0 mt-0.5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9.3" strokeWidth={1.7} />
+      <path strokeLinecap="round" strokeWidth={1.9} d="M12 10.8v5.4" />
+      <circle cx="12" cy="7.9" r="1.05" fill="currentColor" stroke="none" />
+    </svg>
   );
 }

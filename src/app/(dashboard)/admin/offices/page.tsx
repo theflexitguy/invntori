@@ -1,48 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/Spinner";
-import Link from "next/link";
-import type { Office } from "@/lib/types";
+import { FormSheet } from "@/components/ui/FormSheet";
+import {
+  LargeTitle, Group, InfoCard, NavCircleButton, FieldLabel, fieldCls,
+} from "@/components/ui/ios";
+import { NavBarRight } from "@/components/layout/NavBarSlot";
+import { PlusIcon } from "@/components/ui/PageHeader";
+import { ChevronRightIcon, SyncIcon, BuildingIcon } from "@/components/layout/nav";
+import type { Office, Warehouse } from "@/lib/types";
 
 const COLOR_OPTIONS = [
-  "#0A84FF", "#34D399", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#F97316", "#06B6D4",
+  "#30D158", "#64D2FF", "#0A84FF", "#FF9F0A", "#FF453A", "#BF5AF2", "#FF375F", "#5E5CE6",
 ];
 
 export default function OfficesPage() {
   const { user } = useAuth();
   const [offices, setOffices] = useState<Office[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [editItem, setEditItem] = useState<Office | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<Office | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [colorHex, setColorHex] = useState(COLOR_OPTIONS[0]);
   const [fieldroutesID, setFieldroutesID] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user?.companyID) return;
-    load();
-  }, [user]);
-
-  async function load() {
-    if (!user?.companyID) return;
-    const snap = await getDocs(collection(db, "companies", user.companyID, "offices"));
+    const cid = user.companyID;
+    const [officeSnap, whSnap] = await Promise.all([
+      getDocs(collection(db, "companies", cid, "offices")),
+      getDocs(collection(db, "companies", cid, "warehouses")),
+    ]);
     setOffices(
-      snap.docs
+      officeSnap.docs
         .map((d) => ({ id: d.id, ...(d.data() as Omit<Office, "id">) }))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
+    setWarehouses(whSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Warehouse, "id">) })));
     setLoading(false);
-  }
+  }, [user?.companyID]);
+
+  useEffect(() => {
+    if (user?.companyID) load();
+  }, [user?.companyID, load]);
 
   function openAdd() {
     setName("");
@@ -65,25 +75,27 @@ export default function OfficesPage() {
   }
 
   async function handleSave() {
-    if (!user?.companyID || !name.trim()) { setFormError("Name is required."); return; }
+    if (!user?.companyID || !name.trim()) {
+      setFormError("Name is required.");
+      return;
+    }
     setSaving(true);
     setFormError("");
     try {
-      const data: Record<string, unknown> = { name: name.trim() };
-      if (address.trim()) data.address = address.trim();
-      if (colorHex) data.colorHex = colorHex;
-      const frID = parseInt(fieldroutesID);
-      if (!isNaN(frID) && frID > 0) data.fieldroutesOfficeID = frID;
-
+      const parsedFr = parseInt(fieldroutesID, 10);
+      const data: Record<string, unknown> = {
+        name: name.trim(),
+        address: address.trim() || null,
+        colorHex,
+        fieldroutesOfficeID: !isNaN(parsedFr) ? parsedFr : null,
+      };
       if (editItem?.id) {
         await updateDoc(doc(db, "companies", user.companyID, "offices", editItem.id), data);
-        setOffices((prev) => prev.map((o) => o.id === editItem.id ? { ...o, ...data } as Office : o).sort((a, b) => a.name.localeCompare(b.name)));
       } else {
-        const docRef = await addDoc(collection(db, "companies", user.companyID, "offices"), data);
-        setOffices((prev) => [...prev, { id: docRef.id, ...data } as Office].sort((a, b) => a.name.localeCompare(b.name)));
+        await addDoc(collection(db, "companies", user.companyID, "offices"), data);
       }
       setShowForm(false);
-      setEditItem(null);
+      await load();
     } catch {
       setFormError("Failed to save.");
     } finally {
@@ -91,133 +103,169 @@ export default function OfficesPage() {
     }
   }
 
-  async function handleDelete(office: Office) {
-    if (!user?.companyID || !office.id) return;
+  async function handleDelete() {
+    if (!user?.companyID || !editItem?.id) return;
     setDeleting(true);
     try {
-      await deleteDoc(doc(db, "companies", user.companyID, "offices", office.id));
-      setOffices((prev) => prev.filter((o) => o.id !== office.id));
-      setConfirmDelete(null);
+      await deleteDoc(doc(db, "companies", user.companyID, "offices", editItem.id));
+      setShowForm(false);
+      await load();
     } finally {
       setDeleting(false);
     }
   }
 
-  const inputCls = "w-full bg-[#2C2C2E] border border-[#2C2C2E] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#0A84FF]";
-
-  if (loading) return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Spinner size={32} /></div>;
+  }
 
   return (
     <div className="px-4 sm:px-6 xl:px-8 pt-1 pb-6 w-full max-w-2xl">
-      <div className="flex items-center gap-2 mb-1">
-        <Link href="/admin" className="text-gray-500 hover:text-white transition-colors text-sm">Admin</Link>
-        <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span className="text-sm text-white">Offices</span>
-      </div>
+      {user?.isAdmin && (
+        <NavBarRight>
+          <NavCircleButton label="Add office" onClick={openAdd}>
+            <PlusIcon className="w-[17px] h-[17px]" />
+          </NavCircleButton>
+        </NavBarRight>
+      )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5 sm:mb-6 mt-4">
-        <div>
-          <h1 className="ios-large-title text-white">Offices</h1>
-          <p className="text-[rgba(235,235,245,0.6)] mt-1 text-[15px]">{offices.length} offices</p>
+      <LargeTitle
+        title="Offices"
+        subtitle={`${offices.length} ${offices.length === 1 ? "Office" : "Offices"}`}
+      />
+
+      {offices.length === 0 ? (
+        <div className="bg-[#1C1C1E] rounded-[14px] px-6 py-12 text-center text-[15px] text-[rgba(235,235,245,0.6)]">
+          No offices yet. Add one to get started.
         </div>
-        {user?.isAdmin && (
-          <button onClick={openAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors whitespace-nowrap">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Add Office
-          </button>
-        )}
-      </div>
-
-      <div className="bg-[#1C1C1E] rounded-[14px] overflow-hidden">
-        {offices.length === 0 ? (
-          <p className="text-center text-gray-500 py-12 text-sm">No offices yet. Add one to get started.</p>
-        ) : (
-          <div className="divide-y divide-[#38383A]">
-            {offices.map((office) => (
-              <div key={office.id} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5">
-                <div
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: office.colorHex ?? "#0A84FF" }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{office.name}</p>
-                  {office.address && <p className="text-xs text-gray-500 mt-0.5">{office.address}</p>}
-                  {office.fieldroutesOfficeID != null && (
-                    <p className="text-xs text-gray-600 mt-0.5">FieldRoutes ID: {office.fieldroutesOfficeID}</p>
+      ) : (
+        <Group>
+          {offices.map((office, i) => {
+            const count = warehouses.filter((w) => w.officeID === office.id).length;
+            return (
+              <button
+                key={office.id}
+                onClick={() => user?.isAdmin && openEdit(office)}
+                className="w-full flex items-stretch pl-4 text-left active:bg-white/[0.06] transition-colors"
+              >
+                <span className="flex items-center pr-3 shrink-0">
+                  <span
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: office.colorHex ?? "#0A84FF" }}
+                  />
+                </span>
+                <span
+                  className={`flex-1 min-w-0 flex items-center gap-3 pr-3.5 py-3 ${
+                    i === offices.length - 1 ? "" : "border-b border-[#38383A]/70"
+                  }`}
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[17px] font-semibold text-white leading-snug break-words">
+                      {office.name}
+                    </span>
+                    <span className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-0.5 text-[15px] text-[rgba(235,235,245,0.6)]">
+                      {office.fieldroutesOfficeID != null && (
+                        <span className="flex items-center gap-1.5">
+                          <SyncIcon className="w-4 h-4 shrink-0" />
+                          FR Office {office.fieldroutesOfficeID}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1.5">
+                        <BuildingIcon className="w-4 h-4 shrink-0" />
+                        {count} warehouse{count === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                    {office.address && (
+                      <span className="block text-[15px] text-[rgba(235,235,245,0.6)] leading-snug">
+                        {office.address}
+                      </span>
+                    )}
+                  </span>
+                  {user?.isAdmin && (
+                    <ChevronRightIcon className="w-[14px] h-[14px] text-[rgba(235,235,245,0.3)] shrink-0" />
                   )}
-                </div>
-                {user?.isAdmin && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => openEdit(office)} className="px-3 py-2 text-xs rounded-lg text-gray-400 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors">Edit</button>
-                    <button onClick={() => setConfirmDelete(office)} className="px-3 py-2 text-xs rounded-lg text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-colors">Delete</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                </span>
+              </button>
+            );
+          })}
+        </Group>
+      )}
+
+      <div className="mt-6">
+        <InfoCard title="Office Access Control">
+          Assign employees to offices in Manage Employees. Assign warehouses to offices when adding
+          or editing a warehouse. Admins always see all offices.
+        </InfoCard>
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade" onClick={() => setShowForm(false)}>
-          <div className="animate-sheet bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-md sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-white">{editItem ? "Edit Office" : "Add Office"}</h3>
-              <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+        <FormSheet
+          title={editItem ? "Edit Office" : "Add Office"}
+          onCancel={() => setShowForm(false)}
+          onSave={handleSave}
+          saveDisabled={!name.trim()}
+          saving={saving}
+        >
+          <div className="space-y-5">
+            <div>
+              <FieldLabel>Office Name</FieldLabel>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={fieldCls}
+                placeholder="e.g. Central AR"
+                autoFocus
+              />
             </div>
-            <div className="space-y-3 mb-5">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Office Name *</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Main Office" autoFocus />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Address</label>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} placeholder="e.g. 123 Main St, City, State" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-2">Color</label>
-                <div className="flex gap-2 flex-wrap">
-                  {COLOR_OPTIONS.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setColorHex(c)}
-                      className={`w-7 h-7 rounded-full transition-transform ${colorHex === c ? "scale-110 ring-2 ring-white/40 ring-offset-1 ring-offset-[#1C1C1E]" : "hover:scale-105"}`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">FieldRoutes Office ID</label>
-                <input type="number" value={fieldroutesID} onChange={(e) => setFieldroutesID(e.target.value)} className={inputCls} placeholder="Optional" />
-              </div>
-              {formError && <p className="text-red-400 text-xs">{formError}</p>}
+            <div>
+              <FieldLabel>Address</FieldLabel>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className={fieldCls}
+                placeholder="e.g. 11928 Callis Rd"
+              />
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2C2C2E] text-gray-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-[#0A84FF]/15 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/25 transition-colors disabled:opacity-50">
-                {saving ? "Saving…" : editItem ? "Save Changes" : "Add Office"}
-              </button>
+            <div>
+              <FieldLabel>Color</FieldLabel>
+              <div className="flex gap-3 flex-wrap">
+                {COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColorHex(c)}
+                    aria-label={`Colour ${c}`}
+                    className={`w-8 h-8 rounded-full transition-transform ${
+                      colorHex === c ? "ring-2 ring-white ring-offset-2 ring-offset-[#1C1C1E]" : ""
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+            <div>
+              <FieldLabel>FieldRoutes Office ID</FieldLabel>
+              <input
+                value={fieldroutesID}
+                onChange={(e) => setFieldroutesID(e.target.value)}
+                inputMode="numeric"
+                className={fieldCls}
+                placeholder="Optional"
+              />
+            </div>
 
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade" onClick={() => setConfirmDelete(null)}>
-          <div className="animate-sheet bg-[#1C1C1E] border border-[#2C2C2E] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+var(--safe-bottom))] sm:pb-6 w-full sm:max-w-sm sm:m-4 max-h-[92dvh] overflow-y-auto scroll-touch" onClick={(e) => e.stopPropagation()}>
-            <h4 className="font-semibold text-white mb-2">Delete &quot;{confirmDelete.name}&quot;?</h4>
-            <p className="text-sm text-gray-400 mb-5">This office will be removed. Warehouses and employees linked to this office will not be affected.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm border border-[#2C2C2E] text-gray-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={() => handleDelete(confirmDelete)} disabled={deleting} className="flex-1 py-3 sm:py-2 rounded-xl sm:rounded-lg text-sm font-medium bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 transition-colors disabled:opacity-50">
-                {deleting ? "Deleting…" : "Delete"}
+            {formError && <p className="text-[#FF453A] text-[15px]">{formError}</p>}
+
+            {editItem && (
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full py-3.5 rounded-[12px] text-[17px] font-medium bg-[#FF453A]/15 text-[#FF453A] active:bg-[#FF453A]/25 transition-colors disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Delete Office"}
               </button>
-            </div>
+            )}
           </div>
-        </div>
+        </FormSheet>
       )}
     </div>
   );

@@ -278,6 +278,43 @@ export function SlidersIcon({ className = "w-5 h-5" }: IconProps) {
   );
 }
 
+/** info.circle.fill */
+export function InfoCircleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M12 2.2a9.8 9.8 0 1 0 0 19.6 9.8 9.8 0 0 0 0-19.6Zm0 3.4a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6Zm1.5 12.2h-3a.85.85 0 0 1 0-1.7h.65v-4.2h-.5a.85.85 0 0 1 0-1.7h1.35c.47 0 .85.38.85.85v5.05h.65a.85.85 0 0 1 0 1.7Z" />
+    </svg>
+  );
+}
+
+/** arrow.triangle.2.circlepath — a synced integration */
+export function SyncIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.5 9a7.5 7.5 0 0 1 12.7-3.2L20 8.5M20 4.6v4h-4M19.5 15a7.5 7.5 0 0 1-12.7 3.2L4 15.5M4 19.4v-4h4" />
+    </svg>
+  );
+}
+
+/** dollarsign.circle */
+export function DollarCircleIcon({ className = "w-4 h-4" }: IconProps) {
+  return (
+    <svg className={className} {...stroke}>
+      <circle cx="12" cy="12" r="9" strokeWidth={1.7} />
+      <path strokeLinecap="round" strokeWidth={1.7} d="M12 6.4v11.2M14.6 9.2c-.5-.8-1.5-1.3-2.6-1.3-1.5 0-2.7.8-2.7 2s1.1 1.7 2.7 2c1.6.3 2.7.9 2.7 2.1s-1.2 2-2.7 2c-1.2 0-2.2-.5-2.7-1.4" />
+    </svg>
+  );
+}
+
+/** doc.text */
+export function DocIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg className={className} {...fill}>
+      <path d="M6.6 2h6.2c.4 0 .78.16 1.06.44l3.9 3.9c.28.28.44.66.44 1.06V19.5a2.5 2.5 0 0 1-2.5 2.5H6.6a2.5 2.5 0 0 1-2.5-2.5v-15A2.5 2.5 0 0 1 6.6 2Zm1.9 6.4a.85.85 0 0 0 0 1.7h5.4a.85.85 0 0 0 0-1.7H8.5Zm0 3.6a.85.85 0 0 0 0 1.7h7a.85.85 0 0 0 0-1.7h-7Zm0 3.6a.85.85 0 0 0 0 1.7h4.4a.85.85 0 0 0 0-1.7H8.5Z" />
+    </svg>
+  );
+}
+
 /* Outline utility glyphs */
 
 export function ChevronRightIcon({ className = "w-4 h-4" }: IconProps) {
